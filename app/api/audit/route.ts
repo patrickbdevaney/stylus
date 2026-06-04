@@ -1,9 +1,12 @@
-import type { StreamEvent } from "@/lib/schema";
+import type { StreamEvent, SiteAudit } from "@/lib/schema";
 import { resolve } from "@/lib/agent/resolve";
 import { fetchSite } from "@/lib/agent/fetchSite";
 import { auditSite } from "@/lib/agent/auditSite";
-import { getDemo, findDemoByName, isDemoMode } from "@/lib/demo/seed";
+import { generateSite } from "@/lib/agent/generateSite";
+import { deploySite } from "@/lib/agent/deploySite";
+import { getDemo, findDemoByName, getDemoEntry, isDemoMode } from "@/lib/demo/seed";
 import { encodeSse, sleep } from "@/lib/stream";
+import { previewUrl, storePreviewHtml } from "@/lib/previewStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +19,7 @@ type AuditRequestBody = {
 async function replayDemoTrace(
   send: (event: StreamEvent) => void,
   demoSlug: string,
-) {
+): Promise<SiteAudit> {
   const demo = getDemo(demoSlug);
   if (!demo) throw new Error(`Demo not found: ${demoSlug}`);
 
@@ -85,18 +88,16 @@ async function replayDemoTrace(
     message: `Overall score: ${demo.audit.overallScore}/100`,
   });
   send({ type: "audit", data: demo.audit });
+  return demo.audit;
 }
 
 async function runLiveAudit(
   input: string,
   send: (event: StreamEvent) => void,
-) {
+): Promise<SiteAudit> {
   if (isDemoMode()) {
     const demo = findDemoByName(input);
-    if (demo) {
-      await replayDemoTrace(send, demo.slug);
-      return;
-    }
+    if (demo) return replayDemoTrace(send, demo.slug);
   }
 
   send({
@@ -120,7 +121,9 @@ async function runLiveAudit(
     type: "step",
     step: "fetch",
     status: "start",
-    message: resolved.url ? `Fetching ${resolved.url}…` : "Building degraded snapshot…",
+    message: resolved.url
+      ? `Fetching ${resolved.url}…`
+      : "Building degraded snapshot…",
   });
   const snapshot = await fetchSite(resolved);
   send({
@@ -155,6 +158,96 @@ async function runLiveAudit(
     message: `Overall score: ${audit.overallScore}/100`,
   });
   send({ type: "audit", data: audit });
+  return audit;
+}
+
+async function runGenerateDeploy(
+  audit: SiteAudit,
+  send: (event: StreamEvent) => void,
+  demoSlug?: string,
+  origin?: string,
+) {
+  send({
+    type: "step",
+    step: "generate",
+    status: "start",
+    message: "Filling Miami neon template from audit…",
+  });
+  send({
+    type: "reasoning",
+    delta: `Generating single-page site for ${audit.businessName} — hero, services, about, contact…\n`,
+  });
+
+  const generated = await generateSite(audit);
+
+  send({
+    type: "step",
+    step: "generate",
+    status: "done",
+    message: `Template filled — ${(generated.html.length / 1024).toFixed(1)} KB`,
+  });
+
+  send({
+    type: "step",
+    step: "deploy",
+    status: "start",
+    message: "Deploying to Vercel…",
+  });
+
+  try {
+    const result = await deploySite(generated);
+    send({
+      type: "step",
+      step: "deploy",
+      status: "done",
+      message: `Live in ${(result.ms / 1000).toFixed(1)}s`,
+    });
+    send({ type: "deploy", data: result });
+  } catch (err) {
+    const fallback = demoSlug
+      ? getDemoEntry(demoSlug)?.deployFallbackUrl
+      : findDemoByName(audit.businessName)?.deployFallbackUrl;
+
+    if (fallback) {
+      send({
+        type: "reasoning",
+        delta: "Deploy unavailable — using cached demo URL.\n",
+      });
+      send({
+        type: "step",
+        step: "deploy",
+        status: "done",
+        message: "Cached fallback URL",
+      });
+      send({
+        type: "deploy",
+        data: { url: fallback, provider: "vercel", ms: 0 },
+      });
+      return;
+    }
+
+    if (origin) {
+      const id = storePreviewHtml(generated.html);
+      const url = previewUrl(id, origin);
+      send({
+        type: "reasoning",
+        delta: "Vercel deploy unavailable — serving preview on this host.\n",
+      });
+      send({
+        type: "step",
+        step: "deploy",
+        status: "done",
+        message: "Preview URL ready",
+      });
+      send({
+        type: "deploy",
+        data: { url, provider: "vercel", ms: 0 },
+      });
+      return;
+    }
+
+    throw err;
+  }
 }
 
 export async function POST(req: Request) {
@@ -178,16 +271,17 @@ export async function POST(req: Request) {
       };
 
       try {
-        if (demoSlug) {
-          await replayDemoTrace(send, demoSlug);
-        } else {
-          await runLiveAudit(input, send);
-        }
+        const origin = new URL(req.url).origin;
+        const audit = demoSlug
+          ? await replayDemoTrace(send, demoSlug)
+          : await runLiveAudit(input, send);
+
+        await runGenerateDeploy(audit, send, demoSlug, origin);
         send({ type: "done" });
       } catch (err) {
         send({
           type: "error",
-          message: err instanceof Error ? err.message : "Audit failed",
+          message: err instanceof Error ? err.message : "Pipeline failed",
         });
       } finally {
         controller.close();

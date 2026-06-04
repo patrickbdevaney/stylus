@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateSite } from "@/lib/agent/generateSite";
+import { generateSite, generateSiteFromOpts } from "@/lib/agent/generateSite";
 import { deploySite } from "@/lib/agent/deploySite";
 import { SiteAuditSchema } from "@/lib/schema";
 
@@ -18,7 +18,9 @@ export async function POST(req: Request) {
         ? body.businessName.trim()
         : "Stylus Demo");
 
-    const generated = await generateSite({ audit, businessName });
+    const generated = audit
+      ? await generateSite(audit)
+      : await generateSiteFromOpts({ businessName });
     const result = await deploySite(generated);
 
     return NextResponse.json(result);

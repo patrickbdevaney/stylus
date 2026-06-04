@@ -7,7 +7,7 @@
 
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
-import { generateSite } from "../lib/agent/generateSite";
+import { generateSiteFromOpts } from "../lib/agent/generateSite";
 import { deploySite } from "../lib/agent/deploySite";
 
 function loadEnvLocal() {
@@ -30,7 +30,7 @@ async function main() {
   const businessName = process.argv[2]?.trim() || "Stylus Demo";
   console.log(`Deploying shell for: ${businessName}`);
 
-  const generated = await generateSite({ businessName });
+  const generated = await generateSiteFromOpts({ businessName });
   const result = await deploySite(generated);
 
   console.log(JSON.stringify(result, null, 2));

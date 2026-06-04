@@ -1,17 +1,19 @@
 "use client";
 
-import type { AuditStep, StreamEvent } from "@/lib/schema";
+import type { PipelineStep, StreamEvent } from "@/lib/schema";
 
 type StepState = {
-  step: AuditStep;
+  step: PipelineStep;
   status: "pending" | "active" | "done";
   message: string;
 };
 
-const STEP_LABELS: Record<AuditStep, string> = {
+const STEP_LABELS: Record<PipelineStep, string> = {
   resolve: "Resolve",
   fetch: "Fetch & parse",
   audit: "LLM audit",
+  generate: "Generate site",
+  deploy: "Deploy",
 };
 
 type Props = {

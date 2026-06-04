@@ -79,12 +79,12 @@ export type DemoCacheEntry = DemoBusiness & {
   deployFallbackUrl?: string;
 };
 
-export type AuditStep = "resolve" | "fetch" | "audit";
+export type PipelineStep = "resolve" | "fetch" | "audit" | "generate" | "deploy";
 
 export type StreamEvent =
   | {
       type: "step";
-      step: AuditStep;
+      step: PipelineStep;
       status: "start" | "done";
       message: string;
     }
@@ -92,5 +92,9 @@ export type StreamEvent =
   | { type: "resolve"; data: ResolveResult }
   | { type: "snapshot"; data: SiteSnapshot }
   | { type: "audit"; data: SiteAudit }
+  | { type: "deploy"; data: DeployResult }
   | { type: "done" }
   | { type: "error"; message: string };
+
+/** @deprecated use PipelineStep */
+export type AuditStep = PipelineStep;
