@@ -1,0 +1,4 @@
+// UI components — AuditStream, ScoreCard, BeforeAfter, DeployButton
+// Stub: implemented in a later phase.
+
+export {};
