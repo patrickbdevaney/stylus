@@ -1,17 +1,24 @@
 import { NextResponse } from "next/server";
 import { generateSite } from "@/lib/agent/generateSite";
 import { deploySite } from "@/lib/agent/deploySite";
+import { SiteAuditSchema } from "@/lib/schema";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
+
+    let audit;
+    if (body.audit) {
+      audit = SiteAuditSchema.parse(body.audit);
+    }
+
     const businessName =
-      typeof body.businessName === "string" && body.businessName.trim()
+      audit?.businessName ??
+      (typeof body.businessName === "string" && body.businessName.trim()
         ? body.businessName.trim()
-        : "Stylus Demo";
+        : "Stylus Demo");
 
-    const generated = await generateSite({ businessName });
-
+    const generated = await generateSite({ audit, businessName });
     const result = await deploySite(generated);
 
     return NextResponse.json(result);

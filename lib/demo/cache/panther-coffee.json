@@ -1,0 +1,84 @@
+{
+  "slug": "panther-coffee",
+  "name": "Panther Coffee",
+  "category": "Specialty coffee shop",
+  "reasoningTrace": [
+    "Resolved Panther Coffee → panthercoffee.com.\n",
+    "Fetched site — clean brand, multiple locations listed.\n",
+    "Headings emphasize roasting and Wynwood flagship.\n",
+    "Mobile: responsive layout but location hours require extra taps.\n",
+    "Local SEO: Miami neighborhoods mentioned in location blocks, not hero.\n",
+    "Conversion: online shop link competes with visit-in-person CTA.\n",
+    "Overall 65/100 — solid indie brand, needs sharper local conversion.\n"
+  ],
+  "snapshot": {
+    "businessName": "Panther Coffee",
+    "url": "https://www.panthercoffee.com",
+    "degraded": false,
+    "title": "Panther Coffee | Specialty Coffee Roaster Miami",
+    "description": "Award-winning specialty coffee roaster. Wynwood, Miami Beach, and more.",
+    "headings": [
+      "Panther Coffee",
+      "Locations",
+      "Shop",
+      "Wholesale",
+      "About"
+    ],
+    "contact": {
+      "phone": "(305) 677-3952",
+      "address": "2390 NW 2nd Ave, Miami, FL 33127",
+      "email": "hello@panthercoffee.com"
+    },
+    "rawText": "Panther Coffee specialty coffee roaster in Miami. Visit our Wynwood flagship at 2390 NW 2nd Ave. Also Miami Beach and other locations. Order beans online. Wholesale inquiries welcome. Open daily. Call (305) 677-3952.",
+    "screenshot": null
+  },
+  "audit": {
+    "businessName": "Panther Coffee",
+    "category": "Specialty coffee shop",
+    "overallScore": 65,
+    "dimensions": {
+      "clarity": {
+        "score": 70,
+        "reason": "Roaster identity is clear — could state 'visit Wynwood' faster for tourists."
+      },
+      "trust": {
+        "score": 72,
+        "reason": "Email, phone, and flagship address present — feels like a real local business."
+      },
+      "mobile": {
+        "score": 68,
+        "reason": "Layout works on mobile but hours per location take too many taps."
+      },
+      "speed": {
+        "score": 62,
+        "reason": "Shop imagery and web fonts add weight — still acceptable for the audience."
+      },
+      "conversion": {
+        "score": 55,
+        "reason": "Online shop competes with 'Get directions' — visitors should see both equally."
+      },
+      "localSeo": {
+        "score": 60,
+        "reason": "Wynwood appears in locations but hero misses 'Miami specialty coffee' keywords."
+      }
+    },
+    "topFixes": [
+      "Hero CTA pair: 'Directions to Wynwood' + 'Order beans'.",
+      "Show today's hours for nearest location automatically.",
+      "Add neighborhood names (Wynwood, Miami Beach) to the main headline."
+    ],
+    "brand": {
+      "tagline": "Miami's award-winning specialty coffee roaster",
+      "phone": "(305) 677-3952",
+      "address": "2390 NW 2nd Ave, Miami, FL 33127",
+      "email": "hello@panthercoffee.com",
+      "palette": ["#9d4edd", "#00f0ff", "#ff2d95", "#0a0a12"],
+      "services": [
+        "Specialty Coffee",
+        "Espresso Bar",
+        "Retail Beans",
+        "Wholesale Roasting"
+      ]
+    }
+  }
+}

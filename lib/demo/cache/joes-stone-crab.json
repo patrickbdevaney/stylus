@@ -1,0 +1,84 @@
+{
+  "slug": "joes-stone-crab",
+  "name": "Joe's Stone Crab",
+  "category": "Seafood restaurant",
+  "reasoningTrace": [
+    "Resolved Joe's Stone Crab → joesstonecrab.com.\n",
+    "Fetched seasonal landing page — reservation CTA prominent but seasonal closure banner confusing.\n",
+    "Phone (305) 673-0365 in header on desktop; hidden in mobile hamburger.\n",
+    "Trust signals strong: century-old brand, Miami Beach address present.\n",
+    "Conversion gap: no click-to-call on mobile hero during stone crab season push.\n",
+    "Speed: image-heavy gallery — acceptable on Wi-Fi, heavy on LTE.\n",
+    "Overall 58/100 — iconic brand held back by mobile conversion friction.\n"
+  ],
+  "snapshot": {
+    "businessName": "Joe's Stone Crab",
+    "url": "https://www.joesstonecrab.com",
+    "degraded": false,
+    "title": "Joe's Stone Crab | Miami Beach",
+    "description": "World-famous stone crab and seafood since 1913. Miami Beach institution.",
+    "headings": [
+      "Joe's Stone Crab",
+      "Reservations",
+      "Menu",
+      "History",
+      "Gift Cards"
+    ],
+    "contact": {
+      "phone": "(305) 673-0365",
+      "address": "11 Washington Ave, Miami Beach, FL 33139",
+      "email": null
+    },
+    "rawText": "Joe's Stone Crab Miami Beach. Reservations recommended. Famous for stone crab claws, hash browns, and key lime pie. Open seasonally for stone crab October through May. Call (305) 673-0365. Located on South Beach. Takeout and gift cards available.",
+    "screenshot": null
+  },
+  "audit": {
+    "businessName": "Joe's Stone Crab",
+    "category": "Seafood restaurant",
+    "overallScore": 58,
+    "dimensions": {
+      "clarity": {
+        "score": 62,
+        "reason": "Brand is clear to locals but seasonal hours and closure messaging confuses first-time visitors."
+      },
+      "trust": {
+        "score": 78,
+        "reason": "Strong heritage story and Miami Beach address — customers trust the name."
+      },
+      "mobile": {
+        "score": 45,
+        "reason": "Phone and reservations sit behind the mobile menu instead of one-tap actions on the hero."
+      },
+      "speed": {
+        "score": 50,
+        "reason": "Hero photography is beautiful but large — expect slow LCP on mobile networks."
+      },
+      "conversion": {
+        "score": 48,
+        "reason": "Reservation link exists but no tap-to-call for walk-in questions during peak season."
+      },
+      "localSeo": {
+        "score": 65,
+        "reason": "Miami Beach and South Beach appear but could lean harder into 'stone crab season' local queries."
+      }
+    },
+    "topFixes": [
+      "Add tap-to-call and 'Book a table' side-by-side on mobile hero.",
+      "Clarify seasonal hours in one line under the headline.",
+      "Compress hero images for faster mobile load without losing the Beach vibe."
+    ],
+    "brand": {
+      "tagline": "Miami Beach stone crab since 1913",
+      "phone": "(305) 673-0365",
+      "address": "11 Washington Ave, Miami Beach, FL 33139",
+      "email": null,
+      "palette": ["#00f0ff", "#ff6b35", "#0a0a12", "#ff2d95"],
+      "services": [
+        "Stone Crab Claws",
+        "Fresh Seafood",
+        "Reservations",
+        "Takeout & Gift Cards"
+      ]
+    }
+  }
+}

@@ -71,3 +71,26 @@ export type DemoBusiness = {
   name: string;
   category: string;
 };
+
+export type DemoCacheEntry = DemoBusiness & {
+  snapshot: SiteSnapshot;
+  audit: SiteAudit;
+  reasoningTrace?: string[];
+  deployFallbackUrl?: string;
+};
+
+export type AuditStep = "resolve" | "fetch" | "audit";
+
+export type StreamEvent =
+  | {
+      type: "step";
+      step: AuditStep;
+      status: "start" | "done";
+      message: string;
+    }
+  | { type: "reasoning"; delta: string }
+  | { type: "resolve"; data: ResolveResult }
+  | { type: "snapshot"; data: SiteSnapshot }
+  | { type: "audit"; data: SiteAudit }
+  | { type: "done" }
+  | { type: "error"; message: string };

@@ -1,0 +1,85 @@
+{
+  "slug": "versailles",
+  "name": "Versailles Restaurant",
+  "category": "Cuban restaurant",
+  "reasoningTrace": [
+    "Resolving Versailles Restaurant → versaillesrestaurant.com…\n",
+    "Fetching homepage — classic Miami Cuban spot, heavy JPG menu PDFs detected.\n",
+    "Parsing contact: (305) 444-0240 found in footer only.\n",
+    "Checking mobile signals — no viewport meta in cached snapshot, tiny tap targets on menu links.\n",
+    "Scoring clarity: hero says 'Welcome' but not what makes Versailles special.\n",
+    "Scoring conversion: phone buried below fold — Wynwood tourists won't scroll.\n",
+    "Extracting brand: Cuban bakery + restaurant, 24hr, Calle Ocho landmark.\n",
+    "Overall 41/100 — huge room for a neon refresh with tap-to-call hero.\n"
+  ],
+  "snapshot": {
+    "businessName": "Versailles Restaurant",
+    "url": "https://www.versaillesrestaurant.com",
+    "degraded": false,
+    "title": "Versailles Restaurant | Authentic Cuban Cuisine Miami",
+    "description": "Miami's most famous Cuban restaurant on Calle Ocho. Open 24 hours.",
+    "headings": [
+      "Welcome to Versailles",
+      "Our Menu",
+      "Bakery",
+      "Catering",
+      "Contact Us"
+    ],
+    "contact": {
+      "phone": "(305) 444-0240",
+      "address": "3555 SW 8th St, Miami, FL 33135",
+      "email": null
+    },
+    "rawText": "Versailles Restaurant - Authentic Cuban Cuisine in Miami. Located on Calle Ocho in Little Havana. Famous for Cuban coffee, pastries, and classic dishes. Open 24 hours. Call (305) 444-0240. Menu includes ropa vieja, lechon asado, croquetas, and bakery items. Catering available. No online ordering on homepage.",
+    "screenshot": null
+  },
+  "audit": {
+    "businessName": "Versailles Restaurant",
+    "category": "Cuban restaurant",
+    "overallScore": 41,
+    "dimensions": {
+      "clarity": {
+        "score": 38,
+        "reason": "The homepage welcome message doesn't explain why Versailles is the Calle Ocho institution — new visitors don't get the story in 3 seconds."
+      },
+      "trust": {
+        "score": 52,
+        "reason": "Address and phone exist but only in the footer — no hours badge or Google reviews above the fold."
+      },
+      "mobile": {
+        "score": 35,
+        "reason": "Menu links open PDFs and small text — painful on a phone after a night out on Calle Ocho."
+      },
+      "speed": {
+        "score": 40,
+        "reason": "Large menu images and legacy layout likely slow first paint on mobile LTE."
+      },
+      "conversion": {
+        "score": 32,
+        "reason": "No tap-to-call button above the fold — tourists searching 'Cuban food near me' bounce when they can't call instantly."
+      },
+      "localSeo": {
+        "score": 48,
+        "reason": "Miami and Little Havana appear in copy but neighborhood landmarks and '24 hour' aren't in the hero for local search."
+      }
+    },
+    "topFixes": [
+      "Add a sticky tap-to-call button with (305) 444-0240 on mobile.",
+      "Rewrite hero: 'Miami's 24-hour Cuban landmark on Calle Ocho since 1971.'",
+      "Replace PDF menu links with scannable HTML sections and photos."
+    ],
+    "brand": {
+      "tagline": "Miami's 24-hour Cuban landmark on Calle Ocho",
+      "phone": "(305) 444-0240",
+      "address": "3555 SW 8th St, Miami, FL 33135",
+      "email": null,
+      "palette": ["#ff2d95", "#00f0ff", "#ff6b35", "#9d4edd"],
+      "services": [
+        "Cuban Restaurant",
+        "Bakery & Pastries",
+        "Catering",
+        "Late-Night Dining"
+      ]
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "slug": "robert-is-here",
+  "name": "Robert Is Here",
+  "category": "Fruit stand & farm market",
+  "reasoningTrace": [
+    "Resolved Robert Is Here → robertishere.com.\n",
+    "Fetched site — legendary Homestead fruit stand, mamey shake fame.\n",
+    "Hours and seasonal fruit list present but visually dated.\n",
+    "Mobile: phone number exists but not clickable in cached HTML.\n",
+    "Trust: family story is buried — huge missed emotional hook.\n",
+    "Conversion: no clear 'Get directions from Miami' for day-trippers.\n",
+    "Overall 45/100 — beloved brand, site feels stuck in 2008.\n"
+  ],
+  "snapshot": {
+    "businessName": "Robert Is Here",
+    "url": "https://www.robertishere.com",
+    "degraded": false,
+    "title": "Robert Is Here Fruit Stand | Homestead FL",
+    "description": "Famous South Florida fruit stand. Fresh tropical fruit, shakes, and farm market.",
+    "headings": [
+      "Robert Is Here",
+      "Fresh Fruit",
+      "Shakes & Smoothies",
+      "Farm Market",
+      "About Us"
+    ],
+    "contact": {
+      "phone": "(305) 246-1590",
+      "address": "19200 SW 344th St, Homestead, FL 33034",
+      "email": null
+    },
+    "rawText": "Robert Is Here fruit stand in Homestead Florida near Everglades entrance. Famous mamey and key lime shakes. Fresh tropical fruit in season: mango, lychee, dragon fruit. Family owned since 1959. Open daily seasonal hours. Call (305) 246-1590 for availability.",
+    "screenshot": null
+  },
+  "audit": {
+    "businessName": "Robert Is Here",
+    "category": "Fruit stand & farm market",
+    "overallScore": 45,
+    "dimensions": {
+      "clarity": {
+        "score": 50,
+        "reason": "Fruit stand identity is there but the famous shakes and Everglades trip context aren't in the hero."
+      },
+      "trust": {
+        "score": 55,
+        "reason": "Family-since-1959 story exists on an inner page — should lead the homepage."
+      },
+      "mobile": {
+        "score": 38,
+        "reason": "Phone isn't tap-to-call and photos aren't optimized — day-trippers are on phones in the car."
+      },
+      "speed": {
+        "score": 42,
+        "reason": "Unoptimized images and table layout likely feel sluggish on rural LTE near Homestead."
+      },
+      "conversion": {
+        "score": 40,
+        "reason": "No directions CTA for Miami visitors — they Google instead of clicking through."
+      },
+      "localSeo": {
+        "score": 52,
+        "reason": "Homestead and Everglades in copy but not combined in one searchable headline."
+      }
+    },
+    "topFixes": [
+      "Hero: 'Famous mamey shakes on the road to the Everglades since 1959.'",
+      "Tap-to-call + Google Maps directions as dual mobile buttons.",
+      "Show what's in season this week above the fold."
+    ],
+    "brand": {
+      "tagline": "Homestead's legendary fruit stand since 1959",
+      "phone": "(305) 246-1590",
+      "address": "19200 SW 344th St, Homestead, FL 33034",
+      "email": null,
+      "palette": ["#ff6b35", "#00f0ff", "#ff2d95", "#9d4edd"],
+      "services": [
+        "Fresh Tropical Fruit",
+        "Famous Fruit Shakes",
+        "Farm Market",
+        "Seasonal Produce"
+      ]
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "slug": "gramps-bar",
+  "name": "Gramps",
+  "category": "Bar & live music venue",
+  "reasoningTrace": [
+    "Resolved Gramps → grampsbar.com.\n",
+    "Fetched Wynwood bar site — event calendar heavy, tonight's show buried.\n",
+    "No phone above fold; Instagram link more prominent than directions.\n",
+    "Mobile: calendar widget hard to read on small screens.\n",
+    "Trust: address in footer only — late-night crowd needs map link upfront.\n",
+    "Local SEO: 'Wynwood bar' keywords weak in hero copy.\n",
+    "Overall 38/100 — great vibe offline, site doesn't sell tonight's experience.\n"
+  ],
+  "snapshot": {
+    "businessName": "Gramps",
+    "url": "https://www.grampsbar.com",
+    "degraded": false,
+    "title": "Gramps | Bar & Live Music Wynwood",
+    "description": "Wynwood bar with live music, drag bingo, and outdoor patio.",
+    "headings": [
+      "Gramps",
+      "Events",
+      "Menu",
+      "Private Events",
+      "Contact"
+    ],
+    "contact": {
+      "phone": "(305) 699-2665",
+      "address": "176 NW 24th St, Miami, FL 33127",
+      "email": "info@grampsbar.com"
+    },
+    "rawText": "Gramps bar in Wynwood Miami. Live music, DJ nights, drag bingo, trivia. Outdoor patio. Full bar and pub food. Check events calendar for tonight. 176 NW 24th St. Follow us on Instagram for updates. Private events available.",
+    "screenshot": null
+  },
+  "audit": {
+    "businessName": "Gramps",
+    "category": "Bar & live music venue",
+    "overallScore": 38,
+    "dimensions": {
+      "clarity": {
+        "score": 35,
+        "reason": "Homepage doesn't answer 'What's happening tonight?' — the main reason someone visits."
+      },
+      "trust": {
+        "score": 42,
+        "reason": "Social links are active but address and phone are footer-only for a late-night venue."
+      },
+      "mobile": {
+        "score": 30,
+        "reason": "Events calendar is cramped on phones — the core audience is mobile-first after 9pm."
+      },
+      "speed": {
+        "score": 45,
+        "reason": "Third-party calendar embed adds scripts and slows first interaction."
+      },
+      "conversion": {
+        "score": 28,
+        "reason": "No one-tap directions or call — party-goers abandon if they can't find the door."
+      },
+      "localSeo": {
+        "score": 48,
+        "reason": "Wynwood is in the title tag but missing from visible hero text and event snippets."
+      }
+    },
+    "topFixes": [
+      "Hero block: tonight's headline event + 'Get directions' + tap-to-call.",
+      "Replace embedded calendar with simple tonight / this week cards.",
+      "Add 'Wynwood' and 'live music' to the visible H1."
+    ],
+    "brand": {
+      "tagline": "Wynwood's backyard for live music & late nights",
+      "phone": "(305) 699-2665",
+      "address": "176 NW 24th St, Miami, FL 33127",
+      "email": "info@grampsbar.com",
+      "palette": ["#ff2d95", "#9d4edd", "#00f0ff", "#ff6b35"],
+      "services": [
+        "Live Music",
+        "Craft Cocktails",
+        "Outdoor Patio",
+        "Private Events"
+      ]
+    }
+  }
+}
