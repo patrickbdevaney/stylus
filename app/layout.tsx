@@ -11,6 +11,7 @@ const display = Bebas_Neue({
 const body = Inter({
   subsets: ["latin"],
   variable: "--font-body",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {

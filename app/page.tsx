@@ -72,43 +72,59 @@ export default function Page() {
     await runPipeline({ demoSlug: slug });
   }
 
+  const showTrace = running || steps.length > 0 || reasoning.length > 0;
+
   return (
-    <main className="relative min-h-screen overflow-hidden">
+    <main className="relative min-h-screen overflow-x-hidden">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-hero-wash"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-32 top-20 h-96 w-96 rounded-full bg-neon-pink/10 blur-3xl"
+        className="pointer-events-none absolute -right-40 top-10 h-[28rem] w-[28rem] rounded-full bg-neon-pink/12 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-32 bottom-20 h-96 w-96 rounded-full bg-neon-cyan/10 blur-3xl"
+        className="pointer-events-none absolute -left-40 bottom-10 h-[28rem] w-[28rem] rounded-full bg-neon-cyan/10 blur-3xl"
       />
 
-      <div className="relative mx-auto max-w-5xl px-6 py-16">
-        <header className="mb-12 text-center">
-          <p className="mb-3 font-display text-sm uppercase tracking-[0.35em] text-neon-cyan">
+      <div className="relative mx-auto max-w-6xl px-6 py-12 md:py-16">
+        <header className="mb-10 text-center md:mb-14">
+          <p className="stage-label mb-4 text-base tracking-[0.4em] md:text-lg">
             Miami · Autonomous Agent
           </p>
-          <h1 className="font-display text-7xl uppercase leading-none tracking-wide text-gradient-pink-cyan md:text-8xl">
+          <h1 className="font-display text-[5.5rem] uppercase leading-[0.9] tracking-wide text-gradient-pink-cyan md:text-[7rem] lg:text-[8rem]">
             Stylus
           </h1>
-          <p className="mx-auto mt-5 max-w-lg text-lg text-white/60">
-            Input → fetch → audit → generate → deploy. One click, live URL in
-            under 90 seconds.
+          <p className="mx-auto mt-6 max-w-2xl text-lg font-medium text-white/75 md:text-xl">
+            Input → fetch → audit → generate → deploy
+          </p>
+          <p className="mx-auto mt-2 max-w-xl text-base text-white/50">
+            One click · live URL in under 90 seconds
           </p>
         </header>
 
-        <div className="glass-card neon-glow-cyan p-6 md:p-8">
+        {running && (
+          <div className="mb-6 flex items-center justify-center gap-3 rounded-2xl border border-neon-pink/40 bg-neon-pink/10 px-6 py-4 animate-fade-in">
+            <span className="relative flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-pink opacity-60" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-neon-pink" />
+            </span>
+            <span className="font-display text-2xl uppercase tracking-wide text-white">
+              Agent running
+            </span>
+          </div>
+        )}
+
+        <div className="glass-card neon-glow-cyan p-6 md:p-10">
           <label
             htmlFor="business-input"
-            className="mb-2 block text-sm font-medium text-neon-cyan"
+            className="mb-3 block font-display text-xl uppercase tracking-wide text-neon-cyan md:text-2xl"
           >
             Business name or URL
           </label>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-4 lg:flex-row">
             <input
               id="business-input"
               type="text"
@@ -117,30 +133,30 @@ export default function Page() {
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder="Versailles Restaurant or https://..."
               disabled={running}
-              className="flex-1 rounded-lg border border-neon-cyan/30 bg-night/80 px-4 py-3 text-white placeholder:text-white/30 outline-none transition focus:border-neon-pink focus:ring-1 focus:ring-neon-pink/50 disabled:opacity-50"
+              className="flex-1 rounded-xl border-2 border-neon-cyan/35 bg-night/90 px-5 py-4 text-lg font-medium text-white placeholder:text-white/30 outline-none transition focus:border-neon-pink focus:ring-2 focus:ring-neon-pink/40 disabled:opacity-50 md:text-xl"
             />
             <button
               type="button"
               onClick={handleSubmit}
               disabled={running || !input.trim()}
-              className="rounded-lg bg-gradient-to-r from-neon-pink to-neon-purple px-8 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50 neon-glow-pink"
+              className="rounded-xl bg-gradient-to-r from-neon-pink to-neon-purple px-10 py-4 font-display text-2xl uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-50 neon-glow-pink md:min-w-[200px]"
             >
               {running ? "Running…" : "Run Stylus"}
             </button>
           </div>
 
-          <div className="mt-6 border-t border-white/10 pt-6">
-            <p className="mb-3 text-sm text-white/50">
-              Demo businesses — offline fetch &amp; audit
+          <div className="mt-8 border-t border-white/10 pt-8">
+            <p className="mb-4 font-display text-lg uppercase tracking-[0.12em] text-white/55">
+              Demo — offline fetch &amp; audit
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {demos.map((d) => (
                 <button
                   key={d.slug}
                   type="button"
                   onClick={() => handleDemo(d.slug)}
                   disabled={running}
-                  className="rounded-full border border-neon-purple/40 px-4 py-1.5 text-sm text-neon-purple transition hover:border-neon-pink hover:text-neon-pink disabled:opacity-50"
+                  className="rounded-full border-2 border-neon-purple/45 px-5 py-2.5 text-base font-semibold text-neon-purple transition hover:border-neon-pink hover:bg-neon-pink/10 hover:text-neon-pink disabled:opacity-50 md:text-lg"
                 >
                   {d.name}
                 </button>
@@ -149,8 +165,8 @@ export default function Page() {
           </div>
         </div>
 
-        {(steps.length > 0 || reasoning) && (
-          <AuditStream steps={steps} reasoning={reasoning} />
+        {showTrace && (
+          <AuditStream steps={steps} reasoning={reasoning} running={running} />
         )}
 
         {audit && <ScoreCard audit={audit} />}
@@ -165,12 +181,12 @@ export default function Page() {
         )}
 
         {deployUrl && (
-          <div className="mt-4 text-center">
+          <div className="mt-8 text-center animate-reveal-up">
             <a
               href={deployUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block rounded-lg bg-gradient-to-r from-neon-cyan to-neon-purple px-10 py-3 font-semibold text-night transition hover:opacity-90 neon-glow-cyan"
+              className="inline-block rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple px-12 py-4 font-display text-2xl uppercase tracking-wide text-night transition hover:brightness-110 neon-glow-cyan"
             >
               Open live site ↗
             </a>
@@ -178,13 +194,13 @@ export default function Page() {
         )}
 
         {error && (
-          <p className="mt-6 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-center text-red-300">
+          <p className="mt-8 rounded-xl border-2 border-red-500/50 bg-red-500/15 px-6 py-4 text-center text-lg font-semibold text-red-200">
             {error}
           </p>
         )}
 
-        <footer className="mt-16 text-center text-sm text-white/30">
-          South Beach at night — glow, neon, glass.
+        <footer className="mt-20 text-center font-display text-base uppercase tracking-[0.25em] text-white/25">
+          South Beach at night
         </footer>
       </div>
     </main>

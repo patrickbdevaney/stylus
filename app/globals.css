@@ -12,11 +12,21 @@
 
 body {
   background-color: var(--night);
-  color: #e8e8f0;
+  color: #f0f0f8;
   background-image:
     linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @layer utilities {
@@ -29,18 +39,46 @@ body {
   }
 
   .glass-card {
-    @apply rounded-xl border border-neon-cyan/25 bg-white/[0.04] backdrop-blur-sm;
+    @apply rounded-2xl border border-neon-cyan/30 bg-white/[0.05] backdrop-blur-md;
   }
 
   .neon-glow-pink {
     box-shadow:
-      0 0 20px rgba(255, 45, 149, 0.45),
-      0 0 40px rgba(255, 45, 149, 0.15);
+      0 0 24px rgba(255, 45, 149, 0.5),
+      0 0 48px rgba(255, 45, 149, 0.18);
   }
 
   .neon-glow-cyan {
     box-shadow:
-      0 0 20px rgba(0, 240, 255, 0.35),
-      0 0 40px rgba(0, 240, 255, 0.1);
+      0 0 24px rgba(0, 240, 255, 0.4),
+      0 0 48px rgba(0, 240, 255, 0.12);
+  }
+
+  .neon-glow-purple {
+    box-shadow:
+      0 0 28px rgba(157, 78, 221, 0.45),
+      0 0 56px rgba(157, 78, 221, 0.15);
+  }
+
+  .stage-label {
+    @apply font-display text-sm uppercase tracking-[0.2em] text-neon-cyan;
+  }
+
+  .stage-body {
+    @apply text-base font-medium leading-relaxed text-white/85 md:text-lg;
+  }
+
+  .reveal-hidden {
+    opacity: 0;
+  }
+
+  .progress-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 45, 149, 0.9) 0%,
+      rgba(0, 240, 255, 0.9) 50%,
+      rgba(255, 45, 149, 0.9) 100%
+    );
+    background-size: 200% 100%;
   }
 }
