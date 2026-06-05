@@ -1,0 +1,212 @@
+# Stylus — Cursor project rules
+
+## What this is
+
+Stylus is an autonomous site agent for Miami small businesses. A user enters a business name or URL; the app runs a five-step pipeline and streams progress to the UI:
+
+1. **resolve** — URL vs name; demo name lookup
+2. **fetch** — Firecrawl scrape, Cheerio fallback, or degraded snapshot
+3. **audit** — Claude structured audit (Zod-validated `SiteAudit`)
+4. **generate** — fill `lib/template/singlePage.ts` from audit (deterministic, not LLM HTML)
+5. **deploy** — Vercel prebuilt static deploy, with preview/fallback URLs when deploy fails
+
+The demo UI shows a live agent trace (SSE), dimension score cards, and before/after preview. **DEMO_MODE** and demo slug buttons replay cached Little Havana–style fixtures without live fetch or API keys.
+
+Spec and architecture notes (when present) live in `.scratch/SPEC_FOR_CURSOR.md` and `.scratch/ARCHITECTURE.md`. Read those before large changes.
+
+---
+
+## Stack
+
+| Layer | Choice |
+|-------|--------|
+| Framework | Next.js **14.2.5** App Router |
+| UI | React **18**, TypeScript **strict**, Tailwind **3.4** |
+| Validation | **Zod 3** — schemas in `lib/schema.ts`, parse at boundaries |
+| Audit LLM | **@anthropic-ai/sdk** — streaming + forced tool call |
+| Fetch | **Firecrawl** (`FIRECRAWL_API_KEY`) → **Cheerio** raw HTML → degraded snapshot |
+| Deploy | **Vercel CLI** (`vercel deploy --prebuilt --public`) via `lib/agent/deploySite.ts` |
+| Streaming | **SSE** from `POST /api/audit` — `StreamEvent` union in `lib/schema.ts` |
+| Scripts | **tsx** — `scripts/deploy-shell.ts`, `npm run deploy:shell` |
+
+Env vars (see `.env.example`): `ANTHROPIC_API_KEY`, `FIRECRAWL_API_KEY`, `VERCEL_TOKEN`, `DEMO_MODE`, optional `VERCEL_SCOPE`.
+
+---
+
+## Models
+
+### Runtime (product audit)
+
+- **Claude Sonnet 4.6** — used only in `lib/agent/auditSite.ts`
+- Anthropic API model id: **`claude-sonnet-4-20250514`**
+- Forced tool: **`emit_audit`** (schema in `lib/auditToolSchema.ts`)
+- Output validated with **`SiteAuditSchema.parse()`**; one repair retry; then `buildFallbackAudit()` if key missing or validation fails twice
+
+Do not swap audit models or add free-form JSON parsing. Keep tool-forced structured output.
+
+### Development (building this repo)
+
+- **Composer 2.5** (`composer-2.5-fast`) — Cursor IDE agent for multi-file, visual, iterative work
+- **cursor-agent CLI** — headless runs for pipeline wiring, script verification, and spec-driven batch tasks
+
+When editing audit prompts or tool schemas, treat Claude Sonnet 4.6 behavior as the target. When editing UI or conventions, match existing Composer-built patterns in the repo.
+
+---
+
+## Composer vs cursor-agent CLI — division of labor
+
+Built in four phases (see git history: `cursor:` commits). Use the same split going forward:
+
+| Phase | Tool | Scope |
+|-------|------|--------|
+| 1. Scaffold + deploy spine | **Composer 2.5** | File tree, `lib/schema.ts`, Miami neon landing page, `deploySite.ts`, `POST /api/deploy`, `scripts/deploy-shell.ts`. Agent steps stubbed; deploy must work first. |
+| 2. Fetch + audit + streaming | **Composer 2.5** | `resolve`, `fetchSite`, `auditSite`, demo cache JSON, SSE `POST /api/audit`, `AuditStream` / `ScoreCard`, demo replay path. |
+| 3. End-to-end generate + deploy loop | **cursor-agent CLI** | Wire audit route → `generateSite` → `deploySite`; preview fallback (`lib/previewStore.ts`, `GET /api/site/[id]`); deploy error handling; verify full pipeline without IDE hand-holding. |
+| 4. Frontend polish | **Composer 2.5** | Typography scale, animations, `BeforeAfter`, progress rail, reduced-motion, responsive layout — visual iteration in IDE. |
+
+**Use Composer 2.5 when:** editing React/Tailwind, cross-file UI refactors, design tokens, component composition, or reading visual output in dev server.
+
+**Use cursor-agent CLI when:** wiring API orchestration across `lib/agent/*`, running deploy smoke tests, batch data files (`data/demo-businesses.json`), or executing spec checkpoints from `.scratch/` headlessly.
+
+**Do not:** duplicate pipeline logic in the client — the browser only calls `/api/audit` and renders `StreamEvent`s. **Do not:** move audit or fetch into client components.
+
+---
+
+## Directory layout (do not invent new top-level buckets)
+
+```
+app/                    # Next.js routes — page.tsx is "use client"
+  api/audit/route.ts    # SSE orchestrator (only place that chains all 5 steps)
+  api/deploy/route.ts   # standalone shell deploy
+  api/site/[id]/route.ts # in-memory preview HTML
+components/             # AuditStream, ScoreCard, BeforeAfter — client components
+lib/
+  schema.ts             # Zod schemas + StreamEvent + PipelineStep — source of truth
+  auditToolSchema.ts    # Claude tool JSON schema (mirrors SiteAudit)
+  stream.ts             # encodeSse, sleep
+  agent/                # one module per pipeline step
+  template/singlePage.ts # renderFromAudit, renderEmptyShell — escaped HTML strings
+  demo/seed.ts + cache/ # 5 full demo entries (snapshot + audit + reasoningTrace)
+scripts/                # CLI entrypoints (deploy-shell)
+data/                   # supplemental seed data (not yet wired to seed.ts)
+```
+
+---
+
+## Coding conventions
+
+### TypeScript
+
+- **`strict: true`** — no `any`; prefer `z.infer<typeof Schema>` from `lib/schema.ts`
+- Import with **`@/`** path alias (e.g. `@/lib/schema`)
+- **Named exports** for functions and components; default export only for `app/page.tsx` and layout
+- Export types beside schemas: `export type SiteAudit = z.infer<typeof SiteAuditSchema>`
+
+### Pipeline / agent modules
+
+- Each step is **`lib/agent/<step>.ts`** with a single public async function: `resolve`, `fetchSite`, `auditSite`, `generateSite`, `deploySite`
+- Steps accept plain data + small options objects (e.g. `AuditOptions.onReasoning`); no Next.js types inside agent code
+- **`app/api/audit/route.ts`** owns step ordering, SSE `send()`, demo replay, and deploy fallbacks — keep orchestration there, not in components
+- Pipeline step ids are exactly: **`resolve` | `fetch` | `audit` | `generate` | `deploy`** (`PipelineStep` in schema). Do not rename or skip steps in the UI without updating `PIPELINE_STEPS` in `AuditStream.tsx`
+
+### Streaming
+
+- Events are **`StreamEvent`** discriminated unions — add new variants in `lib/schema.ts` first
+- SSE format: `data: ${JSON.stringify(event)}\n\n` via `encodeSse()` in `lib/stream.ts`
+- Client consumption: **`consumeAuditStream()`** and **`applyStreamEvent()`** in `components/AuditStream.tsx` — extend these, do not parallel-parse SSE elsewhere
+
+### Zod and LLM output
+
+- Every external shape (API body, tool output, demo JSON) passes through a **Zod schema** defined in or derived from `lib/schema.ts`
+- Demo cache files under `lib/demo/cache/` are validated on import in `seed.ts`
+- Audit reasons must be **plain language for business owners** — no SEO jargon in prompts or fallbacks
+
+### Fetch fallbacks
+
+- Order: demo slug/name → Firecrawl → Cheerio (`User-Agent: StylusBot/1.0`) → `buildDegradedSnapshot()`
+- Set **`degraded: true`** when fewer than 2 usable fields; pipeline continues — never throw on bad fetch
+- Timeouts: **`12_000` ms** on fetch; deploy exec timeout **`25_000` ms**
+
+### Generate + deploy
+
+- Generation is **template fill only** — `renderFromAudit(audit)` in `singlePage.ts`. Do not call an LLM to emit HTML unless explicitly spec'd
+- **`escapeHtml()`** on all user/audit strings in template output
+- Deploy writes **`.vercel/output/static/index.html`** + `config.json` version 3, then `vercel deploy --prebuilt --yes --public -F json`
+- If `VERCEL_TOKEN` missing: demo `deployFallbackUrl`, else **`storePreviewHtml`** + `/api/site/[id]`
+
+### React / UI
+
+- **`"use client"`** on interactive components and `app/page.tsx`
+- **`app/layout.tsx`** stays a Server Component — fonts via `next/font/google` (Bebas Neue → `--font-display`, Inter → `--font-body`)
+- State for pipeline lives in **`page.tsx`**; presentational pieces in `components/`
+- Miami neon tokens — use Tailwind classes, not ad-hoc hex in JSX:
+  - `night` `#0a0a12`
+  - `neon-pink` `#ff2d95`, `neon-cyan` `#00f0ff`, `neon-purple` `#9d4edd`, `neon-orange` `#ff6b35`
+  - Utilities: `glass-card`, `neon-glow-pink|cyan|purple`, `text-gradient-pink-cyan`, `font-display`, `stage-label`
+- Respect **`prefers-reduced-motion`** (see `globals.css`) when adding animations — register keyframes in `tailwind.config.ts`
+
+### API routes
+
+- Streaming audit route: **`export const runtime = "nodejs"`** and **`dynamic = "force-dynamic"`**
+- Return **`400`** for missing `input`/`demoSlug`; stream **`{ type: "error", message }`** for pipeline failures, then close the stream
+
+### Style
+
+- Double quotes, semicolons, 2-space indent — match existing files
+- Minimal comments; only non-obvious business logic (e.g. deploy URL parsing, repair retry)
+- Prefer **small focused diffs** — no new abstractions for one-off helpers
+- Do not add tests, README sections, or docs files unless asked
+
+---
+
+## Demo mode
+
+- **`DEMO_MODE=true`** (or `1`): live input matching a cached business name replays cache instead of fetch/audit API calls
+- Demo buttons send **`{ demoSlug }`** to `/api/audit` — always replays full cached trace including `reasoningTrace` chunks
+- Five full demos in `lib/demo/cache/`: versailles, joes-stone-crab, panther-coffee, gramps-bar, robert-is-here
+- `data/demo-businesses.json` is supplemental seed data (8 businesses) — not yet wired; do not confuse with `lib/demo/cache/`
+
+---
+
+## Out of scope unless explicitly requested
+
+- Real URL discovery from business names only (resolve currently URL-parse + demo name match)
+- LLM-generated multi-page sites or image generation
+- Screenshot/visual audit (schema has `screenshot` field; unused)
+- Cloudflare deploy (schema allows `provider: "cloudflare"`; only Vercel implemented)
+- Owner dashboard / re-audit persistence
+- Git commits — only when the user asks
+
+---
+
+## Verify changes
+
+```bash
+npm run build          # must pass before finishing
+npm run dev            # manual UI check
+npm run deploy:shell   # deploy smoke test (needs VERCEL_TOKEN)
+```
+
+With no keys: run a **demo slug** from the UI — must complete trace, scores, and preview/fallback URL without network audit.
+
+---
+
+## Phase 7 — Brand-aware enrichment + semantic data (cursor-agent + Composer)
+
+### What was added
+- lib/agent/enrichSite.ts: DuckDuckGo HTML search (3 parallel queries), Cheerio extraction of Wikipedia excerpts, review counts/ratings, press snippets. Deterministic brandTier inference (iconic/established/generic) — no LLM call.
+- EnrichmentContext type + brandTier field on SiteAudit in lib/schema.ts
+- auditSite.ts: enrichment block injected into buildAuditPrompt — Claude sees real external signals
+- singlePage.ts: brand-tier CSS branching (iconic strips neon grid/shadows, established softens them, generic unchanged)
+- singlePage.ts: JSON-LD LocalBusiness/Restaurant schema + OG meta tags in every generated site
+- fallbackAudit.ts: brandTier: 'generic' added
+
+### Why this matters
+Versailles (iconic) no longer gets vaporwave neon treatment — it gets a brand-faithful palette.
+The generated site has real deployable SEO value via structured data.
+The audit LLM has external brand context to inform copy and scoring.
+
+### Safety
+enrichSite degrades gracefully: degraded snapshots get instant generic fallback.
+brandTier defaults to 'generic' everywhere — existing behavior for new/unknown businesses unchanged.
+Demo fixtures are untouched.
