@@ -117,6 +117,12 @@ export type StreamEvent =
   | { type: "lighthouse"; data: LighthouseDelta }
   | { type: "variant_progress"; message: string }
   | {
+      type: "provider_result";
+      provider: string;
+      ms: number;
+      won: boolean;
+    }
+  | {
       type: "variant_winner";
       variantIndex: number;
       score: number;

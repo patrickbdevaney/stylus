@@ -10,6 +10,7 @@ import {
   type StepState,
 } from "@/components/AuditStream";
 import { AgentGraph, type AgentNode, type AgentVerdict } from "@/components/AgentGraph";
+import { ProviderScoreboard } from "@/components/ProviderScoreboard";
 import { ScoreCard } from "@/components/ScoreCard";
 import { BeforeAfter } from "@/components/BeforeAfter";
 import { VisualRegressionSlider } from "@/components/VisualRegressionSlider";
@@ -48,6 +49,9 @@ export default function Page() {
   } | null>(null);
   const [seoGap, setSeoGap] = useState<SeoGapResponse | null>(null);
   const [lighthouse, setLighthouse] = useState<LighthouseDelta | null>(null);
+  const [providerResults, setProviderResults] = useState<
+    { provider: string; ms: number; won: boolean }[]
+  >([]);
 
   const demos = getDemoBusinesses();
 
@@ -65,6 +69,7 @@ export default function Page() {
     setShots(null);
     setSeoGap(null);
     setLighthouse(null);
+    setProviderResults([]);
   }
 
   function fetchSeoGap(audit: SiteAudit) {
@@ -112,6 +117,16 @@ export default function Page() {
       });
     }
     if (event.type === "lighthouse") setLighthouse(event.data);
+    if (event.type === "provider_result") {
+      setProviderResults((prev) => [
+        ...prev,
+        {
+          provider: event.provider,
+          ms: event.ms,
+          won: event.won,
+        },
+      ]);
+    }
     if (event.type === "variant_winner") {
       setVariantWinner({
         variantIndex: event.variantIndex,
@@ -292,6 +307,10 @@ export default function Page() {
             handoffs={handoffs}
             verdict={agentVerdict}
           />
+        )}
+
+        {providerResults.length > 0 && (
+          <ProviderScoreboard results={providerResults} />
         )}
 
         {showTrace && (

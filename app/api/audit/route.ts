@@ -254,6 +254,8 @@ async function runGenerateDeploy(
     (msg) => send({ type: "variant_progress", message: msg }),
     (variantIndex, score, totalMs) =>
       send({ type: "variant_winner", variantIndex, score, totalMs }),
+    (provider, ms, won) =>
+      send({ type: "provider_result", provider, ms, won }),
     {
       onSpawn: (agent, role) => send({ type: "agent_spawn", agent, role }),
       onActive: (agent, detail) =>

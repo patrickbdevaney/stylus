@@ -360,6 +360,7 @@ export type AgentTrace = {
     rejected: string[],
     reason: string,
   ) => void;
+  onProviderResult?: (provider: string, ms: number, won: boolean) => void;
 };
 
 function emitCouncilSpawn(trace?: AgentTrace) {
@@ -392,6 +393,7 @@ export async function generateSiteWithVariants(
   onCopyDone?: (provider: string, ms: number) => void,
   onVariantProgress?: (msg: string) => void,
   onVariantWinner?: (index: number, score: number, ms: number) => void,
+  onProviderResult?: (provider: string, ms: number, won: boolean) => void,
   agentTrace?: AgentTrace,
 ): Promise<GeneratedSite> {
   const liveCopyCallbacks: GenerateCopyCallbacks | undefined =
@@ -419,6 +421,10 @@ export async function generateSiteWithVariants(
     const variant = await generateBestVariant(
       audit,
       wrapVariantProgress(agentTrace, onVariantProgress),
+      (provider, ms, won) => {
+        onProviderResult?.(provider, ms, won);
+        agentTrace?.onProviderResult?.(provider, ms, won);
+      },
     );
     const score = scoreCopy(variant.copy);
 

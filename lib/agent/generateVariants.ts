@@ -46,6 +46,7 @@ function renderWithCopy(audit: SiteAudit, copy: GeneratedCopy): string {
 export async function generateBestVariant(
   audit: SiteAudit,
   onProgress?: (msg: string) => void,
+  onProviderResult?: (provider: string, ms: number, won: boolean) => void,
 ): Promise<SiteVariant> {
   onProgress?.("Racing 3 variants in parallel...");
   const raceStart = Date.now();
@@ -90,6 +91,10 @@ export async function generateBestVariant(
 
   const winner = fulfilled[0];
   onProgress?.(`Winner: variant ${winner.index} (score: ${winner.score}/7)`);
+
+  for (const v of fulfilled) {
+    onProviderResult?.(v.copy.provider, v.copy.ms, v.index === winner.index);
+  }
 
   const html = renderWithCopy(audit, winner.copy);
   const raceDurationMs = Date.now() - raceStart;
