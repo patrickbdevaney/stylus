@@ -2,6 +2,7 @@
   "slug": "joes-stone-crab",
   "name": "Joe's Stone Crab",
   "category": "Seafood restaurant",
+  "deployFallbackUrl": "/previews/joes-stone-crab.html",
   "reasoningTrace": [
     "Resolved Joe's Stone Crab → joesstonecrab.com.\n",
     "Fetched seasonal landing page — reservation CTA prominent but seasonal closure banner confusing.\n",

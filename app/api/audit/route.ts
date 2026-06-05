@@ -75,6 +75,14 @@ function businessSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+function resolveDeployUrl(url: string, origin?: string): string {
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/") && origin) {
+    return `${new URL(origin).origin}${url}`;
+  }
+  return url;
+}
+
 async function emitLighthouse(
   send: (event: StreamEvent) => void,
   opts: {
@@ -402,6 +410,7 @@ async function runGenerateDeploy(
       : findDemoByName(audit.businessName)?.deployFallbackUrl;
 
     if (fallback) {
+      const deployUrl = resolveDeployUrl(fallback, origin);
       send({
         type: "reasoning",
         delta: "Deploy unavailable — using cached demo URL.\n",
@@ -414,13 +423,13 @@ async function runGenerateDeploy(
       });
       send({
         type: "deploy",
-        data: { url: fallback, provider: "vercel", ms: 0 },
+        data: { url: deployUrl, provider: "vercel", ms: 0 },
       });
-      emitShots(send, snapshotUrl, fallback);
+      emitShots(send, snapshotUrl, deployUrl);
       await emitLighthouse(send, {
         demoSlug,
         snapshotUrl,
-        afterUrl: fallback,
+        afterUrl: deployUrl,
         audit,
       });
       return;

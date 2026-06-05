@@ -2,7 +2,7 @@
   "slug": "versailles",
   "name": "Versailles Restaurant",
   "category": "Cuban restaurant",
-  "deployFallbackUrl": "https://stylus-demo.vercel.app/versailles",
+  "deployFallbackUrl": "/previews/versailles.html",
   "reasoningTrace": [
     "Resolving Versailles Restaurant → versaillesrestaurant.com…\n",
     "Fetching homepage — classic Miami Cuban spot, heavy JPG menu PDFs detected.\n",

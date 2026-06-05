@@ -2,6 +2,7 @@
   "slug": "panther-coffee",
   "name": "Panther Coffee",
   "category": "Specialty coffee shop",
+  "deployFallbackUrl": "/previews/panther-coffee.html",
   "reasoningTrace": [
     "Resolved Panther Coffee → panthercoffee.com.\n",
     "Fetched site — clean brand, multiple locations listed.\n",

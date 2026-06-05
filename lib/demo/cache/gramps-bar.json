@@ -2,6 +2,7 @@
   "slug": "gramps-bar",
   "name": "Gramps",
   "category": "Bar & live music venue",
+  "deployFallbackUrl": "/previews/gramps-bar.html",
   "reasoningTrace": [
     "Resolved Gramps → grampsbar.com.\n",
     "Fetched Wynwood bar site — event calendar heavy, tonight's show buried.\n",

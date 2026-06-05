@@ -2,6 +2,7 @@
   "slug": "robert-is-here",
   "name": "Robert Is Here",
   "category": "Fruit stand & farm market",
+  "deployFallbackUrl": "/previews/robert-is-here.html",
   "reasoningTrace": [
     "Resolved Robert Is Here → robertishere.com.\n",
     "Fetched site — legendary Homestead fruit stand, mamey shake fame.\n",
