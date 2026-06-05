@@ -196,13 +196,18 @@ function buildFallbackCopy(audit: SiteAudit, ms: number): GeneratedCopy {
 
 function renderWithCopy(audit: SiteAudit, copy: GeneratedCopy): string {
   const fill = fillTemplateFromAudit(audit);
-  return renderSinglePage({
-    ...fill,
-    tagline: copy.tagline ? `${copy.hero} — ${copy.tagline}` : copy.hero || fill.tagline,
-    services: copy.services.length > 0 ? copy.services : fill.services,
-    about: copy.about || fill.about,
-    brandTier: audit.brandTier ?? "generic",
-  });
+  return renderSinglePage(
+    {
+      ...fill,
+      tagline: copy.tagline
+        ? `${copy.hero} — ${copy.tagline}`
+        : copy.hero || fill.tagline,
+      services: copy.services.length > 0 ? copy.services : fill.services,
+      about: copy.about || fill.about,
+      brandTier: fill.brandTier,
+    },
+    audit,
+  );
 }
 
 function scoreCopy(copy: GeneratedCopy): number {

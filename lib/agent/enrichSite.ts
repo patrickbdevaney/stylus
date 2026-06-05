@@ -4,14 +4,58 @@ import type { EnrichmentContext, SiteSnapshot } from "@/lib/schema";
 const SEARCH_TIMEOUT_MS = 8000;
 const USER_AGENT = "StylusBot/1.0";
 
-function genericContext(): EnrichmentContext {
+const INSTITUTION_SIGNALS =
+  /\b(since 19|landmark|institution|famous|legendary)\b/i;
+
+function yearsFromText(text: string): number | null {
+  const since = text.match(/\bsince\s+(19\d{2}|20[01]\d)\b/i);
+  if (!since) return null;
+  const year = Number.parseInt(since[1], 10);
+  if (year < 1900 || year > 2015) return null;
+  return new Date().getFullYear() - year;
+}
+
+function reviewCountFromText(text: string): number | null {
+  const match = text.match(/([\d,]+)\s+reviews?\b/i);
+  if (!match) return null;
+  const parsed = Number.parseInt(match[1].replace(/,/g, ""), 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+/** Deterministic tier when LLM/enrichment is unavailable (demo / offline). */
+export function deterministicBrandTier(
+  snapshot: SiteSnapshot,
+): EnrichmentContext["brandTier"] {
+  const text = [
+    snapshot.rawText,
+    snapshot.title ?? "",
+    snapshot.description ?? "",
+    snapshot.businessName,
+  ].join(" ");
+
+  const reviews = reviewCountFromText(text);
+  const years = yearsFromText(text);
+
+  if ((reviews !== null && reviews > 1000) || INSTITUTION_SIGNALS.test(text)) {
+    return "iconic";
+  }
+  if (
+    (reviews !== null && reviews >= 100 && reviews <= 1000) ||
+    (years !== null && years > 5)
+  ) {
+    return "established";
+  }
+  return "generic";
+}
+
+function genericContext(snapshot?: SiteSnapshot): EnrichmentContext {
   return {
     wikipediaExcerpt: null,
     googleReviewCount: null,
     googleRating: null,
     yearsOperating: null,
     pressSnippets: [],
-    brandTier: "generic",
+    brandTier: snapshot ? deterministicBrandTier(snapshot) : "generic",
   };
 }
 
@@ -95,14 +139,28 @@ function deriveBrandTier(ctx: {
   ) {
     return "iconic";
   }
+  if ((ctx.googleReviewCount ?? 0) > 1000) {
+    return "iconic";
+  }
   if (
-    (ctx.googleReviewCount ?? 0) > 500 ||
-    (ctx.yearsOperating ?? 0) > 10 ||
+    (ctx.googleReviewCount ?? 0) >= 100 ||
+    (ctx.yearsOperating ?? 0) > 5 ||
     ctx.pressSnippets.length >= 1
   ) {
     return "established";
   }
   return "generic";
+}
+
+function mergeBrandTier(
+  snapshot: SiteSnapshot,
+  fromEnrichment: EnrichmentContext["brandTier"],
+): EnrichmentContext["brandTier"] {
+  const deterministic = deterministicBrandTier(snapshot);
+  const rank = { generic: 0, established: 1, iconic: 2 } as const;
+  return rank[fromEnrichment] >= rank[deterministic]
+    ? fromEnrichment
+    : deterministic;
 }
 
 export async function enrichSite(
@@ -136,12 +194,15 @@ export async function enrichSite(
     const { count: googleReviewCount, rating: googleRating } =
       extractGoogleSignals(reviewSnippets);
 
-    const brandTier = deriveBrandTier({
-      wikipediaExcerpt,
-      googleReviewCount,
-      yearsOperating,
-      pressSnippets,
-    });
+    const brandTier = mergeBrandTier(
+      snapshot,
+      deriveBrandTier({
+        wikipediaExcerpt,
+        googleReviewCount,
+        yearsOperating,
+        pressSnippets,
+      }),
+    );
 
     onProgress?.(
       `Enrichment complete — brand tier: ${brandTier}${yearsOperating ? `, ~${yearsOperating} years` : ""}`,
@@ -157,6 +218,6 @@ export async function enrichSite(
     };
   } catch {
     onProgress?.("Enrichment unavailable — continuing with generic brand tier.");
-    return genericContext();
+    return genericContext(snapshot);
   }
 }

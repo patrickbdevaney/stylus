@@ -1,6 +1,6 @@
 import type { SiteAudit } from "@/lib/schema";
 
-const DEFAULT_PALETTE = ["#ff2d95", "#00f0ff", "#9d4edd", "#ff6b35"];
+const DEFAULT_PALETTE = ["#ff2d95", "#00f0ff", "#9d4edd", "#ff6b35", "#f0f0f0"];
 
 export type TemplateFill = {
   businessName: string;
@@ -15,6 +15,233 @@ export type TemplateFill = {
   brandTier?: "iconic" | "established" | "generic";
   schemaType?: string;
 };
+
+function tierStructuralCss(): string {
+  return `
+    nav {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 1.5rem;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    nav .logo {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+    nav a { color: var(--secondary); text-decoration: none; font-size: 0.9rem; margin-left: 1.25rem; }
+    nav .call-nav {
+      margin-left: 1.25rem; padding: 0.4rem 1rem; border-radius: 4px;
+      background: var(--primary); color: var(--bg); font-weight: 600;
+    }
+    .hero-badge {
+      display: inline-block; padding: 0.35rem 1rem; border-radius: 999px;
+      margin-bottom: 1.25rem; border: 1px solid var(--border);
+      color: var(--secondary); font-size: 0.8rem;
+      text-transform: uppercase; letter-spacing: 0.12em;
+    }
+    .about { padding: 5rem 1.5rem; }
+    .about h2 {
+      font-family: var(--font-display); font-size: 2rem;
+      color: var(--primary); margin-bottom: 1.5rem; text-align: center;
+    }
+    .about-text {
+      text-align: center; max-width: 640px; margin: 0 auto;
+      opacity: 0.9; line-height: 1.7;
+    }
+    .map-link {
+      display: inline-block; margin: 1rem 0; padding: 0.75rem 1.5rem;
+      border-radius: 4px; border: 1px solid var(--secondary);
+      color: var(--secondary); text-decoration: none; font-weight: 600;
+    }
+    .sticky-call {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+      padding: 1rem; text-align: center; font-weight: 700;
+      background: var(--primary); color: var(--bg); text-decoration: none;
+    }
+    @media (max-width: 600px) {
+      nav .nav-links { display: none; }
+      .sticky-call { display: block; }
+      body { padding-bottom: 5rem; }
+    }
+  `;
+}
+
+function tierCss(fill: TemplateFill): string {
+  const palette = fill.palette.length >= 2 ? fill.palette : DEFAULT_PALETTE;
+  const primary = palette[0] ?? "#ff2d6b";
+  const secondary = palette[1] ?? "#00ffe7";
+  const tertiary = palette[2] ?? "#ffe600";
+  const bg = palette[3] ?? "#0a0a0f";
+  const text = palette[4] ?? "#f0f0f0";
+  const tier = fill.brandTier ?? "generic";
+
+  const base = `
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+    .hero { min-height: 90vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            padding: 4rem 1.5rem; }
+    .hero h1 { font-family: var(--font-display); font-size: clamp(2.5rem,7vw,5rem);
+               color: var(--primary); margin-bottom: 1rem; }
+    .hero p  { font-size: clamp(1rem,2.5vw,1.4rem); color: var(--text);
+               max-width: 600px; opacity: 0.9; }
+    .cta-btn { display: inline-block; margin-top: 2rem;
+               padding: 1rem 2.5rem; border-radius: 4px;
+               background: var(--primary); color: var(--bg);
+               font-family: var(--font-display); font-size: 1.1rem;
+               font-weight: 700; text-decoration: none;
+               transition: opacity .2s; }
+    .cta-btn:hover { opacity: .85; }
+    .services { padding: 5rem 1.5rem; }
+    .services h2 { font-family: var(--font-display); font-size: 2rem;
+                   color: var(--primary); margin-bottom: 2rem; text-align: center; }
+    .services-grid { display: grid; gap: 1.5rem;
+                     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .service-card { background: var(--card-bg); border-radius: 8px;
+                    padding: 1.5rem; border: 1px solid var(--border); }
+    .service-card h3 { color: var(--secondary); margin-bottom: .5rem; }
+    .contact { padding: 4rem 1.5rem; text-align: center; }
+    .contact h2 { font-family: var(--font-display); color: var(--primary);
+                  margin-bottom: 1.5rem; }
+    footer { text-align: center; padding: 2rem; font-size: .85rem; opacity: .5; }
+    ${tierStructuralCss()}
+  `;
+
+  if (tier === "iconic") {
+    return `
+      :root {
+        --primary:   ${primary};
+        --secondary: ${secondary};
+        --tertiary:  ${tertiary};
+        --bg:        ${bg};
+        --text:      ${text};
+        --card-bg:   color-mix(in srgb, ${bg} 85%, ${primary});
+        --border:    color-mix(in srgb, ${primary} 25%, transparent);
+        --font-display: 'Playfair Display', 'Georgia', 'Times New Roman', serif;
+        --font-body:    'Lora', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+      }
+      ${base}
+      body { background: var(--bg); }
+      .hero { background: linear-gradient(160deg, var(--bg) 60%,
+              color-mix(in srgb, var(--primary) 12%, var(--bg))); }
+      .hero h1 {
+        text-shadow: none;
+        letter-spacing: .02em;
+        border-bottom: 3px solid var(--primary);
+        padding-bottom: .5rem;
+      }
+      .cta-btn { border-radius: 2px; letter-spacing: .08em; text-transform: uppercase; }
+      .service-card { border-left: 4px solid var(--primary); border-radius: 2px; }
+    `;
+  }
+
+  if (tier === "established") {
+    return `
+      :root {
+        --primary:   ${primary};
+        --secondary: ${secondary};
+        --tertiary:  ${tertiary};
+        --bg:        ${bg};
+        --text:      ${text};
+        --card-bg:   color-mix(in srgb, ${bg} 90%, ${primary});
+        --border:    color-mix(in srgb, ${primary} 30%, transparent);
+        --font-display: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        --font-body:    'Inter', 'Helvetica Neue', Arial, sans-serif;
+      }
+      ${base}
+      body {
+        background: var(--bg);
+        background-image:
+          linear-gradient(30deg, color-mix(in srgb, var(--primary) 5%, transparent) 12.5%, transparent 12.5%, transparent 50%),
+          linear-gradient(150deg, color-mix(in srgb, var(--secondary) 5%, transparent) 12.5%, transparent 12.5%, transparent 50%);
+        background-size: 24px 44px;
+      }
+      .hero {
+        background: linear-gradient(135deg, var(--bg),
+                    color-mix(in srgb, var(--primary) 15%, var(--bg)));
+      }
+      .hero h1 {
+        text-shadow: 0 0 30px color-mix(in srgb, var(--primary) 40%, transparent);
+        letter-spacing: -.01em;
+      }
+      .cta-btn { border-radius: 6px; }
+      .service-card {
+        border-top: 3px solid var(--primary);
+        box-shadow: 0 4px 20px color-mix(in srgb, var(--primary) 10%, transparent);
+      }
+    `;
+  }
+
+  return `
+    :root {
+      --primary:   ${primary};
+      --secondary: ${secondary};
+      --tertiary:  ${tertiary};
+      --bg:        #0a0a0f;
+      --text:      #f0f0f0;
+      --card-bg:   #12121a;
+      --border:    color-mix(in srgb, var(--primary) 35%, transparent);
+      --font-display: 'Courier New', Courier, monospace;
+      --font-body:    'Inter', 'Helvetica Neue', Arial, sans-serif;
+    }
+    ${base}
+    body {
+      background: var(--bg);
+      background-image:
+        linear-gradient(rgba(255,45,107,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,45,107,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .hero {
+      background: radial-gradient(ellipse at 50% 0%,
+        color-mix(in srgb, var(--primary) 18%, transparent) 0%,
+        transparent 70%);
+    }
+    .hero h1 {
+      text-shadow: 0 0 20px var(--primary), 0 0 60px var(--primary);
+      letter-spacing: .04em;
+    }
+    .cta-btn {
+      box-shadow: 0 0 20px var(--primary);
+      border-radius: 3px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .cta-btn:hover { box-shadow: 0 0 35px var(--primary); }
+    .service-card {
+      border: 1px solid var(--border);
+      box-shadow: 0 0 15px color-mix(in srgb, var(--primary) 8%, transparent);
+    }
+    .service-card h3 {
+      text-shadow: 0 0 8px var(--secondary);
+    }
+  `;
+}
+
+function tierFonts(tier: string | undefined): string {
+  if (tier === "iconic") {
+    return `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet">`;
+  }
+  if (tier === "established") {
+    return `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">`;
+  }
+  return "";
+}
 
 /** Deterministic template-fill from audit — no LLM, bounded and fast. */
 export function fillTemplateFromAudit(audit: SiteAudit): TemplateFill {
@@ -35,7 +262,8 @@ export function fillTemplateFromAudit(audit: SiteAudit): TemplateFill {
     email: audit.brand.email,
     services,
     about: buildAboutCopy(audit),
-    palette: audit.brand.palette.length >= 2 ? audit.brand.palette : DEFAULT_PALETTE,
+    palette:
+      audit.brand.palette.length >= 2 ? audit.brand.palette : DEFAULT_PALETTE,
     brandTier: audit.brandTier ?? "generic",
   };
 }
@@ -60,11 +288,38 @@ function serviceDescription(
 }
 
 export function renderFromAudit(audit: SiteAudit): string {
-  return renderSinglePage(fillTemplateFromAudit(audit));
+  return renderSinglePage(fillTemplateFromAudit(audit), audit);
+}
+
+function minimalAuditFromFill(fill: TemplateFill): SiteAudit {
+  const dim = (score: number, reason: string) => ({ score, reason });
+  return {
+    businessName: fill.businessName,
+    category: fill.category,
+    overallScore: 50,
+    dimensions: {
+      clarity: dim(50, "Shell"),
+      trust: dim(50, "Shell"),
+      mobile: dim(50, "Shell"),
+      speed: dim(50, "Shell"),
+      conversion: dim(50, "Shell"),
+      localSeo: dim(50, "Shell"),
+    },
+    topFixes: ["Contact us for details."],
+    brand: {
+      tagline: fill.tagline,
+      phone: fill.phone,
+      address: fill.address,
+      email: fill.email,
+      palette: fill.palette,
+      services: fill.services.map((s) => s.name),
+    },
+    brandTier: fill.brandTier ?? "generic",
+  };
 }
 
 export function renderEmptyShell(businessName = "Stylus Demo"): string {
-  return renderSinglePage({
+  const fill: TemplateFill = {
     businessName,
     category: "Local business",
     tagline: "Miami's finest — coming soon",
@@ -78,72 +333,9 @@ export function renderEmptyShell(businessName = "Stylus Demo"): string {
     ],
     about: `Welcome to ${businessName}. Proudly serving Miami with passion and style.`,
     palette: DEFAULT_PALETTE,
-  });
-}
-
-function tierCss(
-  fill: TemplateFill,
-  vars: { pink: string; cyan: string; purple: string; orange: string },
-) {
-  const tier = fill.brandTier ?? "generic";
-  const { pink, cyan, purple, orange } = vars;
-  const gridOpacity = tier === "established" ? "0.015" : "0.03";
-  const glow = (alpha: number) =>
-    tier === "established" ? (alpha * 0.6).toFixed(3) : String(alpha);
-
-  const root = `:root{
-  --night:#0a0a12;--pink:${pink};--cyan:${cyan};--purple:${purple};--orange:${orange};
-  --glass:rgba(255,255,255,0.04);--border:rgba(0,240,255,0.25);
-}`;
-
-  const bodyBackground =
-    tier === "iconic"
-      ? "background-color:var(--night);background-image:none;"
-      : `background-image:
-    linear-gradient(rgba(0,240,255,${gridOpacity}) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,240,255,${gridOpacity}) 1px,transparent 1px);
-  background-size:40px 40px;`;
-
-  const logo =
-    tier === "iconic"
-      ? `.logo{font-weight:800;font-size:1.1rem;letter-spacing:0.05em;color:${pink};border-bottom:2px solid ${pink}}`
-      : `.logo{font-weight:800;font-size:1.1rem;letter-spacing:0.05em;
-  background:linear-gradient(90deg,var(--pink),var(--cyan));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}`;
-
-  const heroH1 =
-    tier === "iconic"
-      ? `.hero h1{
-  position:relative;
-  font-size:clamp(2.2rem,8vw,4.25rem);font-weight:700;text-transform:uppercase;
-  letter-spacing:0.01em;line-height:1.05;margin-bottom:1rem;
-}`
-      : `.hero h1{
-  position:relative;
-  font-size:clamp(2.2rem,8vw,4.25rem);font-weight:900;text-transform:uppercase;
-  letter-spacing:0.02em;line-height:1.05;margin-bottom:1rem;
-  text-shadow:0 0 40px rgba(255,45,149,0.35);
-}`;
-
-  const rootAndOverrides = root;
-
-  const ctaGlow = glow(0.45);
-  const ctaHoverGlow = glow(0.55);
-  const cardGlow = glow(0.08);
-  const cardHoverGlow = glow(0.12);
-  const stickyGlow = glow(0.4);
-
-  return {
-    rootAndOverrides,
-    bodyBackground,
-    logo,
-    heroH1,
-    ctaGlow,
-    ctaHoverGlow,
-    cardGlow,
-    cardHoverGlow,
-    stickyGlow,
+    brandTier: "generic",
   };
+  return renderSinglePage(fill, minimalAuditFromFill(fill));
 }
 
 function schemaTypeForCategory(category: string, fallback?: string): string {
@@ -164,33 +356,23 @@ function schemaTypeForCategory(category: string, fallback?: string): string {
   return fallback || "LocalBusiness";
 }
 
-export function renderSinglePage(fill: TemplateFill): string {
+export function renderSinglePage(fill: TemplateFill, audit: SiteAudit): string {
   const tier = fill.brandTier ?? "generic";
-  const paletteSource =
-    tier === "generic"
-      ? DEFAULT_PALETTE
-      : fill.palette.length >= 2
-        ? fill.palette
-        : DEFAULT_PALETTE;
-  const [pink, cyan, purple, orange] = [
-    ...paletteSource,
-    ...DEFAULT_PALETTE,
-  ].slice(0, 4);
-
-  const css = tierCss(fill, { pink, cyan, purple, orange });
+  const palette = fill.palette.length >= 2 ? fill.palette : DEFAULT_PALETTE;
+  const themeColor = palette[0] ?? "#ff2d6b";
 
   const telHref = fill.phone ? phoneTel(fill.phone) : null;
 
   const serviceItems = fill.services
     .map(
       (s) =>
-        `<div class="card"><h3>${escapeHtml(s.name)}</h3><p>${escapeHtml(s.description)}</p></div>`,
+        `<div class="service-card"><h3>${escapeHtml(s.name)}</h3><p>${escapeHtml(s.description)}</p></div>`,
     )
     .join("\n");
 
   const heroCta = telHref
-    ? `<a href="tel:${escapeHtml(telHref)}" class="cta">Tap to call ${escapeHtml(fill.phone!)}</a>`
-    : `<a href="#contact" class="cta">Get in touch</a>`;
+    ? `<a href="tel:${escapeHtml(telHref)}" class="cta-btn">Tap to call ${escapeHtml(fill.phone!)}</a>`
+    : `<a href="#contact" class="cta-btn">Get in touch</a>`;
 
   const mapBlock = fill.address
     ? `<a href="${escapeHtml(mapsUrl(fill.address))}" target="_blank" rel="noopener" class="map-link">Get directions →</a>
@@ -239,108 +421,13 @@ export function renderSinglePage(fill: TemplateFill): string {
 <meta property="og:title" content="${escapeHtml(fill.businessName)}">
 <meta property="og:description" content="${escapeHtml(fill.tagline)}">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="${pink}">
+<meta name="theme-color" content="${themeColor}">
 <title>${escapeHtml(fill.businessName)} | ${escapeHtml(fill.category)} · Miami</title>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-${css.rootAndOverrides}
-html{scroll-behavior:smooth}
-body{
-  font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
-  background:var(--night);color:#e8e8f0;line-height:1.6;padding-bottom:4rem;
-  ${css.bodyBackground}
-}
-.palm{
-  position:fixed;bottom:0;right:-20px;width:180px;height:220px;opacity:0.06;pointer-events:none;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120'%3E%3Cpath fill='%2300f0ff' d='M50 120V60M50 60c-20-30-35-25-40-10 15-5 25 0 40 10M50 60c20-30 35-25 40-10-15-5-25 0-40 10M50 45c-10-25-25-20-30-5 10-3 18 0 30 5M50 45c10-25 25-20 30-5-10-3-18 0-30 5'/%3E%3C/svg%3E") no-repeat center/contain;
-}
-nav{
-  position:sticky;top:0;z-index:10;
-  display:flex;justify-content:space-between;align-items:center;
-  padding:1rem 1.5rem;
-  background:rgba(10,10,18,0.9);backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
-}
-${css.logo}
-nav a{color:var(--cyan);text-decoration:none;font-size:0.9rem;margin-left:1.25rem}
-nav .call-nav{
-  margin-left:1.25rem;padding:0.4rem 1rem;border-radius:999px;
-  background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;font-weight:600;
-}
-.hero{
-  min-height:75vh;display:flex;flex-direction:column;justify-content:center;align-items:center;
-  text-align:center;padding:4rem 1.5rem 5rem;
-  background:linear-gradient(135deg,rgba(255,45,149,0.14) 0%,rgba(0,240,255,0.08) 45%,rgba(157,78,221,0.12) 100%);
-  position:relative;overflow:hidden;
-}
-.hero::before{
-  content:"";position:absolute;inset:0;
-  background:radial-gradient(ellipse at 50% 0%,rgba(255,45,149,0.15),transparent 60%);
-  pointer-events:none;
-}
-.hero-badge{
-  display:inline-block;padding:0.35rem 1rem;border-radius:999px;margin-bottom:1.25rem;
-  border:1px solid var(--border);color:var(--cyan);font-size:0.8rem;
-  text-transform:uppercase;letter-spacing:0.12em;
-}
-${css.heroH1}
-.hero p{font-size:clamp(1rem,3vw,1.3rem);color:#a0a0b8;max-width:36rem;margin-bottom:2rem;position:relative}
-.cta{
-  position:relative;
-  display:inline-block;padding:1rem 2.5rem;border-radius:999px;
-  background:linear-gradient(135deg,var(--pink),var(--purple));
-  color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;
-  box-shadow:0 0 28px rgba(255,45,149,${css.ctaGlow});transition:transform 0.2s,box-shadow 0.2s;
-}
-.cta:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(255,45,149,${css.ctaHoverGlow})}
-section{padding:4rem 1.5rem;max-width:960px;margin:0 auto}
-section h2{
-  font-size:1.75rem;font-weight:800;margin-bottom:2rem;text-align:center;
-  background:linear-gradient(90deg,var(--cyan),var(--orange));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem}
-.card{
-  padding:1.5rem;border-radius:12px;
-  background:var(--glass);border:1px solid var(--border);
-  box-shadow:0 0 20px rgba(0,240,255,${css.cardGlow});
-  transition:border-color 0.2s,box-shadow 0.2s;
-}
-.card:hover{border-color:rgba(255,45,149,0.4);box-shadow:0 0 24px rgba(255,45,149,${css.cardHoverGlow})}
-.card h3{color:var(--cyan);margin-bottom:0.5rem;font-size:1.1rem}
-.card p{color:#8888a0;font-size:0.95rem;line-height:1.55}
-.about-text{text-align:center;color:#a0a0b8;max-width:640px;margin:0 auto;font-size:1.05rem;line-height:1.7}
-.contact{text-align:center}
-.contact p{margin:0.5rem 0;color:#a0a0b8}
-.contact a{color:var(--cyan);text-decoration:none}
-.map-link{
-  display:inline-block;margin:1rem 0;padding:0.75rem 1.5rem;border-radius:999px;
-  border:1px solid var(--cyan);color:var(--cyan);text-decoration:none;font-weight:600;
-}
-.map-link:hover{background:rgba(0,240,255,0.1)}
-.address{font-size:1.05rem}
-.sticky-call{
-  display:none;position:fixed;bottom:0;left:0;right:0;z-index:20;
-  padding:1rem;text-align:center;font-weight:700;font-size:1.1rem;
-  background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;text-decoration:none;
-  box-shadow:0 -4px 24px rgba(255,45,149,${css.stickyGlow});
-}
-footer{
-  text-align:center;padding:2rem 1.5rem 3rem;color:#55556a;font-size:0.85rem;
-  border-top:1px solid rgba(255,255,255,0.06);
-}
-@media(max-width:600px){
-  nav .nav-links{display:none}
-  .hero h1{font-size:2rem}
-  .sticky-call{display:block}
-  body{padding-bottom:5rem}
-}
-@media(min-width:601px){nav .call-nav{display:inline-block}}
-</style>
+${tierFonts(tier)}
+<style>${tierCss(fill)}</style>
 <script type="application/ld+json">${JSON.stringify(jsonLd, null, 2)}</script>
 </head>
 <body>
-<div class="palm" aria-hidden="true"></div>
 <nav>
   <span class="logo">${escapeHtml(fill.businessName)}</span>
   <div class="nav-links">
@@ -356,13 +443,17 @@ footer{
   <p>${escapeHtml(fill.tagline)}</p>
   ${heroCta}
 </section>
-<section id="services">
-  <h2>Our Services</h2>
-  <div class="grid">${serviceItems}</div>
+<section id="services" class="services">
+  <div class="container">
+    <h2>Our Services</h2>
+    <div class="services-grid">${serviceItems}</div>
+  </div>
 </section>
-<section id="about">
-  <h2>About Us</h2>
-  <p class="about-text">${escapeHtml(fill.about)}</p>
+<section id="about" class="about">
+  <div class="container">
+    <h2>About Us</h2>
+    <p class="about-text">${escapeHtml(fill.about)}</p>
+  </div>
 </section>
 <section id="contact" class="contact">
   <h2>Get In Touch</h2>
