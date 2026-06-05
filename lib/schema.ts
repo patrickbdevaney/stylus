@@ -81,7 +81,22 @@ export type DemoCacheEntry = DemoBusiness & {
   deployFallbackUrl?: string;
 };
 
-export type PipelineStep = "resolve" | "fetch" | "audit" | "generate" | "deploy";
+export type PipelineStep =
+  | "resolve"
+  | "fetch"
+  | "enrich"
+  | "audit"
+  | "generate"
+  | "deploy";
+
+export type EnrichmentContext = {
+  wikipediaExcerpt: string | null;
+  googleReviewCount: number | null;
+  googleRating: number | null;
+  yearsOperating: number | null;
+  pressSnippets: string[];
+  brandTier: "iconic" | "established" | "generic";
+};
 
 export type StreamEvent =
   | {

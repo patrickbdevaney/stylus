@@ -14,6 +14,7 @@ export const PIPELINE_STEPS: PipelineStep[] = [
 const STEP_LABELS: Record<PipelineStep, string> = {
   resolve: "Resolve",
   fetch: "Fetch & parse",
+  enrich: "Enrich",
   audit: "LLM audit",
   generate: "Generate",
   deploy: "Deploy",
@@ -22,9 +23,10 @@ const STEP_LABELS: Record<PipelineStep, string> = {
 const STEP_NUMBERS: Record<PipelineStep, number> = {
   resolve: 1,
   fetch: 2,
-  audit: 3,
-  generate: 4,
-  deploy: 5,
+  enrich: 3,
+  audit: 4,
+  generate: 5,
+  deploy: 6,
 };
 
 export type StepState = {

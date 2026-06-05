@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { SiteAudit, SiteSnapshot } from "@/lib/schema";
+import type { EnrichmentContext, SiteAudit, SiteSnapshot } from "@/lib/schema";
 import { SiteAuditSchema } from "@/lib/schema";
 import { EMIT_AUDIT_TOOL } from "@/lib/auditToolSchema";
 import { buildFallbackAudit } from "@/lib/agent/fallbackAudit";
@@ -7,10 +7,41 @@ import { getDemo, findDemoByName, isDemoMode } from "@/lib/demo/seed";
 
 export type AuditOptions = {
   demoSlug?: string;
+  enrichment?: EnrichmentContext;
   onReasoning?: (delta: string) => void;
 };
 
-function buildAuditPrompt(snapshot: SiteSnapshot, repair = false): string {
+function buildEnrichmentBlock(enrichment: EnrichmentContext): string {
+  const lines = [
+    "",
+    "Brand enrichment (external research — use to calibrate trust and local SEO scores):",
+    `- Brand tier: ${enrichment.brandTier}`,
+    `- Wikipedia: ${enrichment.wikipediaExcerpt ?? "not found"}`,
+    `- Google rating: ${enrichment.googleRating ?? "unknown"} (${enrichment.googleReviewCount ?? "unknown"} reviews)`,
+    `- Years operating (est.): ${enrichment.yearsOperating ?? "unknown"}`,
+  ];
+
+  if (enrichment.pressSnippets.length > 0) {
+    lines.push("- Press snippets:");
+    for (const snippet of enrichment.pressSnippets) {
+      lines.push(`  • ${snippet}`);
+    }
+  } else {
+    lines.push("- Press snippets: none found");
+  }
+
+  lines.push(
+    "Iconic Miami institutions may deserve higher trust baselines even if the website is dated.",
+  );
+
+  return lines.join("\n");
+}
+
+function buildAuditPrompt(
+  snapshot: SiteSnapshot,
+  repair = false,
+  enrichment?: EnrichmentContext,
+): string {
   const contact = [
     snapshot.contact.phone && `Phone: ${snapshot.contact.phone}`,
     snapshot.contact.email && `Email: ${snapshot.contact.email}`,
@@ -37,7 +68,7 @@ ${contact || "none found"}
 Site content excerpt:
 ${snapshot.rawText.slice(0, 4000)}
 
-Use the emit_audit tool. Include brand.palette with at least 2 hex colors (default Miami neon: #ff2d95, #00f0ff, #9d4edd, #ff6b35). Extract real contact info when present; use null when missing.${repairNote}`;
+Use the emit_audit tool. Include brand.palette with at least 2 hex colors (default Miami neon: #ff2d95, #00f0ff, #9d4edd, #ff6b35). Extract real contact info when present; use null when missing.${enrichment ? buildEnrichmentBlock(enrichment) : ""}${repairNote}`;
 }
 
 async function streamAuditCall(
@@ -45,6 +76,7 @@ async function streamAuditCall(
   snapshot: SiteSnapshot,
   onReasoning: ((delta: string) => void) | undefined,
   repair: boolean,
+  enrichment?: EnrichmentContext,
 ): Promise<unknown> {
   const stream = client.messages.stream({
     model: "claude-sonnet-4-20250514",
@@ -54,7 +86,7 @@ async function streamAuditCall(
     messages: [
       {
         role: "user",
-        content: buildAuditPrompt(snapshot, repair),
+        content: buildAuditPrompt(snapshot, repair, enrichment),
       },
     ],
   });
@@ -109,6 +141,7 @@ export async function auditSite(
         snapshot,
         opts?.onReasoning,
         attempt > 0,
+        opts?.enrichment,
       );
       return SiteAuditSchema.parse(raw);
     } catch (err) {

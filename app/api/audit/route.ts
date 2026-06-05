@@ -2,6 +2,7 @@ import type { StreamEvent, SiteAudit } from "@/lib/schema";
 import { resolve } from "@/lib/agent/resolve";
 import { fetchSite } from "@/lib/agent/fetchSite";
 import { auditSite } from "@/lib/agent/auditSite";
+import { enrichSite } from "@/lib/agent/enrichSite";
 import { generateSiteWithVariants } from "@/lib/agent/generateSite";
 import { deploySite } from "@/lib/agent/deploySite";
 import { getDemo, findDemoByName, getDemoEntry, isDemoMode } from "@/lib/demo/seed";
@@ -138,6 +139,22 @@ async function runLiveAudit(
 
   send({
     type: "step",
+    step: "enrich",
+    status: "start",
+    message: "Researching brand history...",
+  });
+  const enrichment = await enrichSite(snapshot, (msg) =>
+    send({ type: "reasoning", delta: msg + "\n" }),
+  );
+  send({
+    type: "step",
+    step: "enrich",
+    status: "done",
+    message: `Brand tier: ${enrichment.brandTier}`,
+  });
+
+  send({
+    type: "step",
     step: "audit",
     status: "start",
     message: "Auditing site with Claude…",
@@ -148,6 +165,7 @@ async function runLiveAudit(
   });
 
   const audit = await auditSite(snapshot, {
+    enrichment,
     onReasoning: (delta) => send({ type: "reasoning", delta }),
   });
 
