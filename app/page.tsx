@@ -50,6 +50,10 @@ export default function Page() {
   } | null>(null);
   const [seoGap, setSeoGap] = useState<SeoGapResponse | null>(null);
   const [lighthouse, setLighthouse] = useState<LighthouseDelta | null>(null);
+  const [seoValidation, setSeoValidation] = useState<{
+    passed: boolean;
+    items: number;
+  } | null>(null);
   const [providerResults, setProviderResults] = useState<
     { provider: string; ms: number; won: boolean }[]
   >([]);
@@ -74,6 +78,7 @@ export default function Page() {
     setShots(null);
     setSeoGap(null);
     setLighthouse(null);
+    setSeoValidation(null);
     setProviderResults([]);
     setCritique(null);
   }
@@ -129,6 +134,12 @@ export default function Page() {
       });
     }
     if (event.type === "lighthouse") setLighthouse(event.data);
+    if (event.type === "seo_validation") {
+      setSeoValidation({
+        passed: event.passed,
+        items: event.items,
+      });
+    }
     if (event.type === "provider_result") {
       setProviderResults((prev) => [
         ...prev,
@@ -355,7 +366,12 @@ export default function Page() {
           />
         )}
 
-        {seoGap && <SeoGapPanel {...seoGap} />}
+        {seoGap && (
+          <SeoGapPanel
+            {...seoGap}
+            validation={seoValidation ?? undefined}
+          />
+        )}
 
         {shots?.beforeUrl && shots?.afterUrl && audit && (
           <VisualRegressionSlider

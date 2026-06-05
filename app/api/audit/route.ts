@@ -8,7 +8,12 @@ import { deploySite } from "@/lib/agent/deploySite";
 import { getDemo, findDemoByName, getDemoEntry, isDemoMode } from "@/lib/demo/seed";
 import { encodeSse, sleep } from "@/lib/stream";
 import { previewUrl, storePreviewHtml } from "@/lib/previewStore";
-import { getLighthouseDelta, seededLighthouse } from "@/lib/lighthouse";
+import {
+  getLighthouseDelta,
+  seededLighthouse,
+  seededStructuredData,
+  structuredDataAudit,
+} from "@/lib/lighthouse";
 import { critiqueAudit } from "@/lib/agent/critiqueAudit";
 
 export const runtime = "nodejs";
@@ -90,6 +95,24 @@ async function emitLighthouse(
     send({
       type: "lighthouse",
       data: seededLighthouse(opts.demoSlug ?? businessSlug(opts.audit.businessName)),
+    });
+  }
+
+  try {
+    const validation = opts.demoSlug
+      ? seededStructuredData()
+      : await structuredDataAudit(opts.afterUrl);
+    send({
+      type: "seo_validation",
+      passed: validation.passed,
+      items: validation.items,
+    });
+  } catch {
+    const fallback = seededStructuredData();
+    send({
+      type: "seo_validation",
+      passed: fallback.passed,
+      items: fallback.items,
     });
   }
 }

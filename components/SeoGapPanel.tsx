@@ -3,7 +3,9 @@
 import { useState } from "react";
 import type { SeoGapResponse } from "@/lib/seoGap";
 
-type Props = SeoGapResponse;
+type Props = SeoGapResponse & {
+  validation?: { passed: boolean; items: number };
+};
 
 export function SeoGapPanel({
   targetBusiness,
@@ -12,6 +14,7 @@ export function SeoGapPanel({
   recommendedCategory,
   summary,
   jsonLd,
+  validation,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const jsonText = JSON.stringify(jsonLd, null, 2);
@@ -103,6 +106,11 @@ export function SeoGapPanel({
       )}
 
       <section>
+        {validation?.passed && (
+          <p className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 font-display text-sm uppercase tracking-wide text-emerald-400 md:text-base">
+            ✓ Structured data validated by Lighthouse ({validation.items} items)
+          </p>
+        )}
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <p className="font-display text-lg uppercase tracking-[0.12em] text-neon-cyan">
             Structured data (deployable)

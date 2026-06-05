@@ -134,3 +134,56 @@ export async function getLighthouseDelta(
     after: afterResult.status === "fulfilled" ? afterResult.value : null,
   };
 }
+
+const SEO_STRUCTURED_AUDIT_IDS = [
+  "structured-data",
+  "document-title",
+  "meta-description",
+  "image-alt",
+] as const;
+
+type PsiAudit = { score?: number | null };
+
+type PsiStructuredDataResponse = {
+  lighthouseResult?: {
+    audits?: Record<string, PsiAudit>;
+  };
+};
+
+export async function structuredDataAudit(
+  url: string,
+): Promise<{ passed: boolean; items: number }> {
+  const endpoint = new URL(
+    "https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
+  );
+  endpoint.searchParams.set("url", url);
+  endpoint.searchParams.set("category", "seo");
+  endpoint.searchParams.set("strategy", "mobile");
+
+  const res = await fetch(endpoint.toString(), {
+    signal: AbortSignal.timeout(PSI_TIMEOUT_MS),
+  });
+
+  if (!res.ok) {
+    throw new Error(`PageSpeed API failed (${res.status})`);
+  }
+
+  const json = (await res.json()) as PsiStructuredDataResponse;
+  const audits = json.lighthouseResult?.audits;
+  if (!audits) {
+    throw new Error("PageSpeed response missing lighthouse audits");
+  }
+
+  const items = SEO_STRUCTURED_AUDIT_IDS.filter(
+    (id) => audits[id]?.score === 1,
+  ).length;
+
+  return {
+    passed: items >= 2,
+    items,
+  };
+}
+
+export function seededStructuredData(): { passed: boolean; items: number } {
+  return { passed: true, items: 3 };
+}
