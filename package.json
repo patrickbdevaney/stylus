@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy:shell": "tsx scripts/deploy-shell.ts"
+    "deploy:shell": "tsx scripts/deploy-shell.ts",
+    "test": "tsx scripts/test/run-all.ts",
+    "test:keyless": "tsx scripts/test/run-all.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
