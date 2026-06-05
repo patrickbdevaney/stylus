@@ -20,6 +20,7 @@ import { LighthousePanel } from "@/components/LighthousePanel";
 import { CostReceipt } from "@/components/CostReceipt";
 import type { SeoGapResponse } from "@/lib/seoGap";
 import type { LighthouseDelta } from "@/lib/lighthouse";
+import type { TraceEntry } from "@/lib/trace";
 
 const AUDIT_MODEL_LABEL = "DeepSeek V4 Flash";
 
@@ -66,6 +67,7 @@ export default function Page() {
   } | null>(null);
   const [pipelineTotalMs, setPipelineTotalMs] = useState<number | null>(null);
   const pipelineStartRef = useRef<number | null>(null);
+  const trace = useRef<TraceEntry[]>([]);
 
   const demos = getDemoBusinesses();
 
@@ -88,6 +90,19 @@ export default function Page() {
     setCritique(null);
     setPipelineTotalMs(null);
     pipelineStartRef.current = null;
+    trace.current = [];
+  }
+
+  function downloadTrace() {
+    const blob = new Blob([JSON.stringify(trace.current, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `stylus-trace-${audit?.businessName ?? "run"}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   function fetchSeoGap(audit: SiteAudit) {
@@ -122,6 +137,8 @@ export default function Page() {
   }
 
   function handleStreamEvent(event: StreamEvent) {
+    trace.current.push({ t: Date.now(), event });
+
     if (event.type === "audit") {
       setAudit(event.data);
       fetchSeoGap(event.data);
@@ -430,6 +447,18 @@ export default function Page() {
             auditModel={AUDIT_MODEL_LABEL}
             totalMs={pipelineTotalMs}
           />
+        )}
+
+        {!running && trace.current.length > 0 && (
+          <div className="mt-10 flex justify-center animate-reveal-up">
+            <button
+              type="button"
+              onClick={downloadTrace}
+              className="rounded-xl border border-neon-cyan/50 bg-neon-cyan/10 px-8 py-3 font-display text-sm uppercase tracking-wider text-neon-cyan transition hover:border-neon-pink hover:bg-neon-pink/10 hover:text-neon-pink neon-glow-cyan"
+            >
+              Download trace ⬇
+            </button>
+          </div>
         )}
 
         <footer className="mt-20 text-center font-display text-base uppercase tracking-[0.25em] text-white/25">
