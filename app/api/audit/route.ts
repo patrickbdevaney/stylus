@@ -8,6 +8,7 @@ import { deploySite } from "@/lib/agent/deploySite";
 import { getDemo, findDemoByName, getDemoEntry, isDemoMode } from "@/lib/demo/seed";
 import { encodeSse, sleep } from "@/lib/stream";
 import { previewUrl, storePreviewHtml } from "@/lib/previewStore";
+import { getLighthouseDelta, seededLighthouse } from "@/lib/lighthouse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +32,34 @@ function emitShots(
     beforeUrl: snapshotUrl ? thumShot(snapshotUrl) : null,
     afterUrl: thumShot(deployUrl),
   });
+}
+
+function businessSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+async function emitLighthouse(
+  send: (event: StreamEvent) => void,
+  opts: {
+    demoSlug?: string;
+    snapshotUrl: string | null;
+    afterUrl: string;
+    audit: SiteAudit;
+  },
+) {
+  if (process.env.LIGHTHOUSE_MODE !== "true") return;
+
+  try {
+    const data = opts.demoSlug
+      ? seededLighthouse(opts.demoSlug)
+      : await getLighthouseDelta(opts.snapshotUrl, opts.afterUrl);
+    send({ type: "lighthouse", data });
+  } catch {
+    send({
+      type: "lighthouse",
+      data: seededLighthouse(opts.demoSlug ?? businessSlug(opts.audit.businessName)),
+    });
+  }
 }
 
 async function replayDemoTrace(
@@ -267,6 +296,12 @@ async function runGenerateDeploy(
     });
     send({ type: "deploy", data: result });
     emitShots(send, snapshotUrl, result.url);
+    await emitLighthouse(send, {
+      demoSlug,
+      snapshotUrl,
+      afterUrl: result.url,
+      audit,
+    });
   } catch (err) {
     const fallback = demoSlug
       ? getDemoEntry(demoSlug)?.deployFallbackUrl
@@ -288,6 +323,12 @@ async function runGenerateDeploy(
         data: { url: fallback, provider: "vercel", ms: 0 },
       });
       emitShots(send, snapshotUrl, fallback);
+      await emitLighthouse(send, {
+        demoSlug,
+        snapshotUrl,
+        afterUrl: fallback,
+        audit,
+      });
       return;
     }
 
@@ -309,6 +350,12 @@ async function runGenerateDeploy(
         data: { url, provider: "vercel", ms: 0 },
       });
       emitShots(send, snapshotUrl, url);
+      await emitLighthouse(send, {
+        demoSlug,
+        snapshotUrl,
+        afterUrl: url,
+        audit,
+      });
       return;
     }
 

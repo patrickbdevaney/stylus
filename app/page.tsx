@@ -14,7 +14,9 @@ import { ScoreCard } from "@/components/ScoreCard";
 import { BeforeAfter } from "@/components/BeforeAfter";
 import { VisualRegressionSlider } from "@/components/VisualRegressionSlider";
 import { SeoGapPanel } from "@/components/SeoGapPanel";
+import { LighthousePanel } from "@/components/LighthousePanel";
 import type { SeoGapResponse } from "@/lib/seoGap";
+import type { LighthouseDelta } from "@/lib/lighthouse";
 
 const INITIAL_AGENTS: AgentNode[] = [
   { name: "auditor", role: "Scores the site", state: "idle", detail: "" },
@@ -45,6 +47,7 @@ export default function Page() {
     afterUrl: string | null;
   } | null>(null);
   const [seoGap, setSeoGap] = useState<SeoGapResponse | null>(null);
+  const [lighthouse, setLighthouse] = useState<LighthouseDelta | null>(null);
 
   const demos = getDemoBusinesses();
 
@@ -61,6 +64,7 @@ export default function Page() {
     setAgentVerdict(null);
     setShots(null);
     setSeoGap(null);
+    setLighthouse(null);
   }
 
   function fetchSeoGap(audit: SiteAudit) {
@@ -107,6 +111,7 @@ export default function Page() {
         afterUrl: event.afterUrl,
       });
     }
+    if (event.type === "lighthouse") setLighthouse(event.data);
     if (event.type === "variant_winner") {
       setVariantWinner({
         variantIndex: event.variantIndex,
@@ -299,6 +304,14 @@ export default function Page() {
         )}
 
         {audit && <ScoreCard audit={audit} />}
+
+        {lighthouse && audit && (
+          <LighthousePanel
+            before={lighthouse.before}
+            after={lighthouse.after}
+            businessName={audit.businessName}
+          />
+        )}
 
         {seoGap && <SeoGapPanel {...seoGap} />}
 

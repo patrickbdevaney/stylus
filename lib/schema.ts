@@ -90,6 +90,8 @@ export type PipelineStep =
   | "generate"
   | "deploy";
 
+import type { LighthouseDelta } from "@/lib/lighthouse";
+
 export type EnrichmentContext = {
   wikipediaExcerpt: string | null;
   googleReviewCount: number | null;
@@ -112,6 +114,7 @@ export type StreamEvent =
   | { type: "audit"; data: SiteAudit }
   | { type: "deploy"; data: DeployResult }
   | { type: "shots"; beforeUrl: string | null; afterUrl: string | null }
+  | { type: "lighthouse"; data: LighthouseDelta }
   | { type: "variant_progress"; message: string }
   | {
       type: "variant_winner";
