@@ -9,8 +9,16 @@ import {
   consumeAuditStream,
   type StepState,
 } from "@/components/AuditStream";
+import { AgentGraph, type AgentNode, type AgentVerdict } from "@/components/AgentGraph";
 import { ScoreCard } from "@/components/ScoreCard";
 import { BeforeAfter } from "@/components/BeforeAfter";
+
+const INITIAL_AGENTS: AgentNode[] = [
+  { name: "auditor", role: "Scores the site", state: "idle", detail: "" },
+  { name: "researcher", role: "Brand context", state: "idle", detail: "" },
+  { name: "copywriter", role: "Rewrites copy", state: "idle", detail: "" },
+  { name: "critic", role: "Judges variants", state: "idle", detail: "" },
+];
 
 export default function Page() {
   const [input, setInput] = useState("");
@@ -26,6 +34,9 @@ export default function Page() {
     score: number;
     totalMs: number;
   } | null>(null);
+  const [agents, setAgents] = useState<AgentNode[]>(INITIAL_AGENTS);
+  const [handoffs, setHandoffs] = useState<{ from: string; to: string }[]>([]);
+  const [agentVerdict, setAgentVerdict] = useState<AgentVerdict | null>(null);
 
   const demos = getDemoBusinesses();
 
@@ -37,6 +48,24 @@ export default function Page() {
     setReasoning("");
     setError(null);
     setVariantWinner(null);
+    setAgents(INITIAL_AGENTS);
+    setHandoffs([]);
+    setAgentVerdict(null);
+  }
+
+  function upsertAgent(
+    name: string,
+    patch: Partial<AgentNode>,
+  ) {
+    setAgents((prev) => {
+      const idx = prev.findIndex((a) => a.name === name);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...patch, name };
+        return next;
+      }
+      return [...prev, { name, role: "", state: "idle", detail: "", ...patch }];
+    });
   }
 
   function handleStreamEvent(event: StreamEvent) {
@@ -48,6 +77,36 @@ export default function Page() {
         variantIndex: event.variantIndex,
         score: event.score,
         totalMs: event.totalMs,
+      });
+    }
+    if (event.type === "agent_spawn") {
+      upsertAgent(event.agent, {
+        role: event.role,
+        state: "idle",
+        detail: "",
+      });
+    }
+    if (event.type === "agent_active") {
+      upsertAgent(event.agent, {
+        state: "active",
+        detail: event.detail,
+      });
+    }
+    if (event.type === "agent_done") {
+      upsertAgent(event.agent, {
+        state: "done",
+        ms: event.ms,
+        detail: event.output,
+      });
+    }
+    if (event.type === "agent_handoff") {
+      setHandoffs((h) => [...h, { from: event.from, to: event.to }]);
+    }
+    if (event.type === "agent_verdict") {
+      setAgentVerdict({
+        accepted: event.accepted,
+        rejected: event.rejected,
+        reason: event.reason,
       });
     }
 
@@ -91,6 +150,10 @@ export default function Page() {
   }
 
   const showTrace = running || steps.length > 0 || reasoning.length > 0;
+  const showAgentGraph =
+    running ||
+    agents.some((a) => a.state !== "idle") ||
+    agentVerdict !== null;
 
   return (
     <main className="relative min-h-screen overflow-x-hidden">
@@ -182,6 +245,14 @@ export default function Page() {
             </div>
           </div>
         </div>
+
+        {showAgentGraph && (
+          <AgentGraph
+            agents={agents}
+            handoffs={handoffs}
+            verdict={agentVerdict}
+          />
+        )}
 
         {showTrace && (
           <AuditStream
