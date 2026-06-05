@@ -18,6 +18,7 @@ import { VisualRegressionSlider } from "@/components/VisualRegressionSlider";
 import { SeoGapPanel } from "@/components/SeoGapPanel";
 import { LighthousePanel } from "@/components/LighthousePanel";
 import { CostReceipt } from "@/components/CostReceipt";
+import { StatTicker } from "@/components/StatTicker";
 import type { SeoGapResponse } from "@/lib/seoGap";
 import type { LighthouseDelta } from "@/lib/lighthouse";
 import type { TraceEntry } from "@/lib/trace";
@@ -291,6 +292,8 @@ export default function Page() {
             One click · live URL in under 90 seconds
           </p>
         </header>
+
+        <StatTicker />
 
         {running && (
           <div className="mb-6 flex items-center justify-center gap-3 rounded-2xl border border-neon-pink/40 bg-neon-pink/10 px-6 py-4 animate-fade-in">
