@@ -4,7 +4,7 @@ import {
   SiteSnapshotSchema,
 } from "../../lib/schema";
 import { LighthouseScoresSchema } from "../../lib/lighthouse";
-import { seededLighthouse } from "../../lib/lighthouse";
+import { seededLighthouse, seededLighthouseDelta } from "../../lib/lighthouse";
 import { buildSeedPayload } from "../../lib/seoGap";
 import { SeoGapResponseSchema } from "../../lib/seoGap";
 import { test, assert } from "./assert";
@@ -100,9 +100,21 @@ test("SeoGapResponseSchema accepts buildSeedPayload output", () => {
 });
 
 test("LighthouseScoresSchema validates seededLighthouse after side", () => {
-  const delta = seededLighthouse("versailles");
-  assert.ok(delta.after !== null, "seeded after scores exist");
-  const parsed = LighthouseScoresSchema.parse(delta.after);
+  const after = seededLighthouse("versailles", "after");
+  const parsed = LighthouseScoresSchema.parse(after);
   assert.inRange(parsed.performance, 0, 100, "performance");
   assert.inRange(parsed.seo, 0, 100, "seo");
+  assert.equal(parsed.seeded, true, "seeded flag");
+});
+
+test("seededLighthouseDelta validates both sides", () => {
+  const delta = seededLighthouseDelta("versailles");
+  assert.notThrows(
+    () => LighthouseScoresSchema.parse(delta.before),
+    "before schema",
+  );
+  assert.notThrows(
+    () => LighthouseScoresSchema.parse(delta.after),
+    "after schema",
+  );
 });

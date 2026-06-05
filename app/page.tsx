@@ -393,6 +393,9 @@ export default function Page() {
           <LighthousePanel
             before={lighthouse.before}
             after={lighthouse.after}
+            bothReal={lighthouse.bothReal}
+            beforeUrl={lighthouse.beforeUrl}
+            afterUrl={lighthouse.afterUrl}
             businessName={audit.businessName}
           />
         )}

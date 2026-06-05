@@ -3,6 +3,7 @@ async function main(): Promise<void> {
   loadEnvForTest();
 
   await import("./unit.schema.test");
+  await import("./unit.lighthouse.test");
   await import("./integration.pipeline.test");
   await import("./system.route.test");
 

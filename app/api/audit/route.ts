@@ -10,7 +10,7 @@ import { encodeSse, sleep } from "@/lib/stream";
 import { previewUrl, storePreviewHtml } from "@/lib/previewStore";
 import {
   getLighthouseDelta,
-  seededLighthouse,
+  seededLighthouseDelta,
   seededStructuredData,
   structuredDataAudit,
 } from "@/lib/lighthouse";
@@ -94,15 +94,24 @@ async function emitLighthouse(
 ) {
   if (process.env.LIGHTHOUSE_MODE !== "true") return;
 
+  const slug = opts.demoSlug ?? businessSlug(opts.audit.businessName);
+
   try {
-    const data = opts.demoSlug
-      ? seededLighthouse(opts.demoSlug)
-      : await getLighthouseDelta(opts.snapshotUrl, opts.afterUrl);
+    const data = await getLighthouseDelta(
+      opts.snapshotUrl,
+      opts.afterUrl,
+      slug,
+    );
     send({ type: "lighthouse", data });
-  } catch {
+  } catch (err) {
+    console.warn("Lighthouse emit failed:", err);
     send({
       type: "lighthouse",
-      data: seededLighthouse(opts.demoSlug ?? businessSlug(opts.audit.businessName)),
+      data: {
+        ...seededLighthouseDelta(slug),
+        beforeUrl: opts.snapshotUrl ?? "seeded",
+        afterUrl: opts.afterUrl,
+      },
     });
   }
 

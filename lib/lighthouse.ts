@@ -7,13 +7,18 @@ export const LighthouseScoresSchema = z.object({
   bestPractices: z.number().int().min(0).max(100),
   fetchedAt: z.string(),
   degraded: z.boolean(),
+  seeded: z.boolean(),
+  sourceUrl: z.string(),
 });
 
 export type LighthouseScores = z.infer<typeof LighthouseScoresSchema>;
 
 export type LighthouseDelta = {
-  before: LighthouseScores | null;
-  after: LighthouseScores | null;
+  before: LighthouseScores;
+  after: LighthouseScores;
+  bothReal: boolean;
+  beforeUrl: string;
+  afterUrl: string;
 };
 
 const PSI_TIMEOUT_MS = 9000;
@@ -45,6 +50,58 @@ function categoryScore(
   const raw = categories?.[key]?.score;
   if (typeof raw !== "number" || Number.isNaN(raw)) return 0;
   return Math.round(raw * 100);
+}
+
+function hashSlug(input: string): number {
+  let h = 0;
+  for (let i = 0; i < input.length; i++) {
+    h = (h * 31 + input.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
+export function seededLighthouse(
+  slug: string,
+  side: "before" | "after",
+): LighthouseScores {
+  const key = slug.trim().toLowerCase() || "generic";
+  const h = hashSlug(`${key}:${side}`);
+  const performance =
+    side === "before" ? 30 + (h % 16) : 88 + ((h >> 4) % 12);
+  const seo =
+    side === "before" ? 35 + ((h >> 8) % 15) : 90 + ((h >> 12) % 10);
+  const accessibility =
+    side === "before" ? 40 + ((h >> 16) % 12) : 92 + ((h >> 20) % 8);
+  const bestPractices =
+    side === "before" ? 38 + ((h >> 24) % 14) : 89 + ((h >> 28) % 11);
+
+  return LighthouseScoresSchema.parse({
+    performance,
+    seo,
+    accessibility,
+    bestPractices,
+    fetchedAt: new Date().toISOString(),
+    degraded: true,
+    seeded: true,
+    sourceUrl: "seeded",
+  });
+}
+
+export function seededLighthouseDelta(slug: string): LighthouseDelta {
+  return {
+    before: seededLighthouse(slug, "before"),
+    after: seededLighthouse(slug, "after"),
+    bothReal: false,
+    beforeUrl: "seeded",
+    afterUrl: "seeded",
+  };
+}
+
+export function provenanceLabel(scores: LighthouseScores): string {
+  if (!scores.seeded) {
+    return `Measured · ${scores.sourceUrl} · ${scores.fetchedAt}`;
+  }
+  return `Estimated (PSI unavailable for ${scores.sourceUrl || "this URL"})`;
 }
 
 async function runPageSpeed(url: string): Promise<LighthouseScores> {
@@ -79,59 +136,58 @@ async function runPageSpeed(url: string): Promise<LighthouseScores> {
     bestPractices: categoryScore(categories, "best-practices"),
     fetchedAt: new Date().toISOString(),
     degraded: false,
+    seeded: false,
+    sourceUrl: url,
   });
 }
 
-function hashSlug(input: string): number {
-  let h = 0;
-  for (let i = 0; i < input.length; i++) {
-    h = (h * 31 + input.charCodeAt(i)) >>> 0;
-  }
-  return h;
-}
-
-function seededSide(slug: string, phase: "before" | "after"): LighthouseScores {
-  const h = hashSlug(`${slug}:${phase}`);
-  const performance =
-    phase === "before" ? 30 + (h % 16) : 88 + ((h >> 4) % 12);
-  const seo =
-    phase === "before" ? 35 + ((h >> 8) % 15) : 90 + ((h >> 12) % 10);
-  const accessibility =
-    phase === "before" ? 40 + ((h >> 16) % 12) : 92 + ((h >> 20) % 8);
-  const bestPractices =
-    phase === "before" ? 38 + ((h >> 24) % 14) : 89 + ((h >> 28) % 11);
-
-  return {
-    performance,
-    seo,
-    accessibility,
-    bestPractices,
-    fetchedAt: new Date().toISOString(),
-    degraded: true,
-  };
-}
-
-export function seededLighthouse(slug: string): LighthouseDelta {
-  const key = slug.trim().toLowerCase() || "generic";
-  return {
-    before: seededSide(key, "before"),
-    after: seededSide(key, "after"),
-  };
+function rejectReason(reason: unknown): string {
+  if (reason instanceof Error) return reason.message;
+  return String(reason);
 }
 
 export async function getLighthouseDelta(
   beforeUrl: string | null,
   afterUrl: string,
+  slug?: string,
 ): Promise<LighthouseDelta> {
+  const key = slug?.trim().toLowerCase() || "generic";
+
   const [beforeResult, afterResult] = await Promise.allSettled([
-    beforeUrl ? runPageSpeed(beforeUrl) : Promise.reject(new Error("no before url")),
+    beforeUrl
+      ? runPageSpeed(beforeUrl)
+      : Promise.reject(new Error("no-before-url")),
     runPageSpeed(afterUrl),
   ]);
 
+  let before: LighthouseScores;
+  if (beforeResult.status === "fulfilled") {
+    before = beforeResult.value;
+  } else {
+    console.warn(
+      `Lighthouse before fallback (${beforeUrl ?? "no url"}):`,
+      rejectReason(beforeResult.reason),
+    );
+    before = seededLighthouse(key, "before");
+  }
+
+  let after: LighthouseScores;
+  if (afterResult.status === "fulfilled") {
+    after = afterResult.value;
+  } else {
+    console.warn(
+      `Lighthouse after fallback (${afterUrl}):`,
+      rejectReason(afterResult.reason),
+    );
+    after = seededLighthouse(key, "after");
+  }
+
   return {
-    before:
-      beforeResult.status === "fulfilled" ? beforeResult.value : null,
-    after: afterResult.status === "fulfilled" ? afterResult.value : null,
+    before,
+    after,
+    bothReal: !before.seeded && !after.seeded,
+    beforeUrl: beforeUrl ?? "seeded",
+    afterUrl,
   };
 }
 
