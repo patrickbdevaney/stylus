@@ -13,6 +13,8 @@ import { AgentGraph, type AgentNode, type AgentVerdict } from "@/components/Agen
 import { ScoreCard } from "@/components/ScoreCard";
 import { BeforeAfter } from "@/components/BeforeAfter";
 import { VisualRegressionSlider } from "@/components/VisualRegressionSlider";
+import { SeoGapPanel } from "@/components/SeoGapPanel";
+import type { SeoGapResponse } from "@/lib/seoGap";
 
 const INITIAL_AGENTS: AgentNode[] = [
   { name: "auditor", role: "Scores the site", state: "idle", detail: "" },
@@ -42,6 +44,7 @@ export default function Page() {
     beforeUrl: string | null;
     afterUrl: string | null;
   } | null>(null);
+  const [seoGap, setSeoGap] = useState<SeoGapResponse | null>(null);
 
   const demos = getDemoBusinesses();
 
@@ -57,6 +60,23 @@ export default function Page() {
     setHandoffs([]);
     setAgentVerdict(null);
     setShots(null);
+    setSeoGap(null);
+  }
+
+  function fetchSeoGap(audit: SiteAudit) {
+    void fetch("/api/seo-gap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        businessName: audit.businessName,
+        category: audit.category,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: SeoGapResponse | null) => {
+        if (data?.targetBusiness) setSeoGap(data);
+      })
+      .catch(() => {});
   }
 
   function upsertAgent(
@@ -75,7 +95,10 @@ export default function Page() {
   }
 
   function handleStreamEvent(event: StreamEvent) {
-    if (event.type === "audit") setAudit(event.data);
+    if (event.type === "audit") {
+      setAudit(event.data);
+      fetchSeoGap(event.data);
+    }
     if (event.type === "snapshot") setOriginalUrl(event.data.url);
     if (event.type === "deploy") setDeployUrl(event.data.url);
     if (event.type === "shots") {
@@ -276,6 +299,8 @@ export default function Page() {
         )}
 
         {audit && <ScoreCard audit={audit} />}
+
+        {seoGap && <SeoGapPanel {...seoGap} />}
 
         {shots?.beforeUrl && shots?.afterUrl && audit && (
           <VisualRegressionSlider
