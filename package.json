@@ -9,7 +9,8 @@
     "lint": "next lint",
     "deploy:shell": "tsx scripts/deploy-shell.ts",
     "test": "tsx scripts/test/run-all.ts",
-    "test:keyless": "tsx scripts/test/run-all.ts"
+    "test:keyless": "tsx scripts/test/run-all.ts",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -32,6 +33,7 @@
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.6",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vitest": "^4.1.8"
   }
 }
