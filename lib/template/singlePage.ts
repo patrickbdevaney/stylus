@@ -13,6 +13,7 @@ export type TemplateFill = {
   about: string;
   palette: string[];
   brandTier?: "iconic" | "established" | "generic";
+  schemaType?: string;
 };
 
 /** Deterministic template-fill from audit — no LLM, bounded and fast. */
@@ -145,6 +146,24 @@ function tierCss(
   };
 }
 
+function schemaTypeForCategory(category: string, fallback?: string): string {
+  const map: Record<string, string> = {
+    restaurant: "Restaurant",
+    food: "Restaurant",
+    cafe: "CafeOrCoffeeShop",
+    coffee: "CafeOrCoffeeShop",
+    shop: "Store",
+    retail: "Store",
+    service: "LocalBusiness",
+  };
+  const lower = category?.toLowerCase() ?? "";
+  if (map[lower]) return map[lower];
+  for (const key of Object.keys(map)) {
+    if (lower.includes(key)) return map[key];
+  }
+  return fallback || "LocalBusiness";
+}
+
 export function renderSinglePage(fill: TemplateFill): string {
   const tier = fill.brandTier ?? "generic";
   const paletteSource =
@@ -182,22 +201,12 @@ export function renderSinglePage(fill: TemplateFill): string {
     ? `<a href="tel:${escapeHtml(telHref)}" class="sticky-call" aria-label="Call ${escapeHtml(fill.businessName)}">📞 Call now</a>`
     : "";
 
-  const category = fill.category.toLowerCase();
-  const schemaType =
-    category.includes("restaurant") ||
-    category.includes("cafe") ||
-    category.includes("coffee") ||
-    category.includes("bar")
-      ? "Restaurant"
-      : category.includes("retail") ||
-          category.includes("shop") ||
-          category.includes("store")
-        ? "Store"
-        : "LocalBusiness";
-
   const jsonLdRaw: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": schemaType,
+    "@type": schemaTypeForCategory(
+      fill.category || "local-business",
+      fill.schemaType,
+    ),
     name: fill.businessName,
     description: fill.tagline,
     address: fill.address

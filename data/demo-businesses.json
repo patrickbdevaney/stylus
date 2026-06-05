@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Cafecito Don Ernesto",
+    "category": "Cuban café",
+    "neighborhood": "Little Havana",
+    "weakCopy": "Welcome to our website!!! We are a family business in Miami. Come try our coffee and pastries. We have been serving the community for many years. Open daily. Call us for more information. Follow us on social media. Gracias for visiting."
+  },
+  {
+    "name": "Fresh Fade Barbershop",
+    "category": "Barber shop",
+    "neighborhood": "Overtown",
+    "weakCopy": "Fresh Fade Barbershop — cuts for men. Walk-ins welcome sometimes. Located near downtown Miami. We do fades, line ups, and beard trims. Quality service at affordable prices. Contact the shop to book."
+  },
+  {
+    "name": "El Trompo Taqueria",
+    "category": "Mexican restaurant",
+    "neighborhood": "Hialeah",
+    "weakCopy": "Home page — El Trompo. Authentic tacos and more. Lunch and dinner. We use fresh ingredients. Family owned restaurant in South Florida. Menu coming soon. Visit us today!"
+  },
+  {
+    "name": "Coral Way Auto Body",
+    "category": "Auto repair",
+    "neighborhood": "Coral Gables",
+    "weakCopy": "Coral Way Auto Body & Paint. We fix cars. Collision repair, dent removal, insurance work accepted. Serving Miami area customers since 2008. Email for a quote. Hours may vary — please call ahead."
+  },
+  {
+    "name": "Wynwood Cycle Co.",
+    "category": "Bike shop",
+    "neighborhood": "Wynwood",
+    "weakCopy": "Wynwood Cycle Co. | Bikes. Repairs. Rentals. Your neighborhood bike store in Miami's arts district. We sell new and used bicycles. Tune-ups available. Stop by the warehouse district location."
+  },
+  {
+    "name": "Sunset Nails & Spa",
+    "category": "Nail salon",
+    "neighborhood": "Kendall",
+    "weakCopy": "Sunset Nails & Spa — manicures, pedicures, waxing. Relax and pamper yourself. Best prices in town!!! Appointments recommended. We are conveniently located off the highway. Gift cards available."
+  },
+  {
+    "name": "Grove Greens Market",
+    "category": "Organic grocery",
+    "neighborhood": "Coconut Grove",
+    "weakCopy": "Grove Greens Market. Organic. Local. Sustainable. A small market for health-conscious shoppers in Miami. Produce, pantry items, cold drinks. New arrivals weekly. About us: we believe in good food."
+  },
+  {
+    "name": "South Beach Dog Walkers",
+    "category": "Pet services",
+    "neighborhood": "South Beach",
+    "weakCopy": "South Beach Dog Walkers — we love pets! Dog walking and pet sitting services in the Miami Beach area. Reliable. Friendly. Insured. Text or email to learn about rates. Your furry friend deserves the best."
+  }
+]

@@ -65,3 +65,6 @@ dist/
 *.local.md
 .env
 .env.local
+
+# generated repo listing
+repo_list.md
