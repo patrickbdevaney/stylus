@@ -17,10 +17,26 @@ type AuditRequestBody = {
   demoSlug?: string;
 };
 
+function thumShot(pageUrl: string): string {
+  return `https://image.thum.io/get/width/600/crop/338/${pageUrl}`;
+}
+
+function emitShots(
+  send: (event: StreamEvent) => void,
+  snapshotUrl: string | null,
+  deployUrl: string,
+) {
+  send({
+    type: "shots",
+    beforeUrl: snapshotUrl ? thumShot(snapshotUrl) : null,
+    afterUrl: thumShot(deployUrl),
+  });
+}
+
 async function replayDemoTrace(
   send: (event: StreamEvent) => void,
   demoSlug: string,
-): Promise<SiteAudit> {
+): Promise<{ audit: SiteAudit; snapshotUrl: string | null }> {
   const demo = getDemo(demoSlug);
   if (!demo) throw new Error(`Demo not found: ${demoSlug}`);
 
@@ -89,13 +105,13 @@ async function replayDemoTrace(
     message: `Overall score: ${demo.audit.overallScore}/100`,
   });
   send({ type: "audit", data: demo.audit });
-  return demo.audit;
+  return { audit: demo.audit, snapshotUrl: demo.snapshot.url };
 }
 
 async function runLiveAudit(
   input: string,
   send: (event: StreamEvent) => void,
-): Promise<SiteAudit> {
+): Promise<{ audit: SiteAudit; snapshotUrl: string | null }> {
   if (isDemoMode()) {
     const demo = findDemoByName(input);
     if (demo) return replayDemoTrace(send, demo.slug);
@@ -176,12 +192,13 @@ async function runLiveAudit(
     message: `Overall score: ${audit.overallScore}/100`,
   });
   send({ type: "audit", data: audit });
-  return audit;
+  return { audit, snapshotUrl: snapshot.url };
 }
 
 async function runGenerateDeploy(
   audit: SiteAudit,
   send: (event: StreamEvent) => void,
+  snapshotUrl: string | null,
   demoSlug?: string,
   origin?: string,
 ) {
@@ -249,6 +266,7 @@ async function runGenerateDeploy(
       message: `Live in ${(result.ms / 1000).toFixed(1)}s`,
     });
     send({ type: "deploy", data: result });
+    emitShots(send, snapshotUrl, result.url);
   } catch (err) {
     const fallback = demoSlug
       ? getDemoEntry(demoSlug)?.deployFallbackUrl
@@ -269,6 +287,7 @@ async function runGenerateDeploy(
         type: "deploy",
         data: { url: fallback, provider: "vercel", ms: 0 },
       });
+      emitShots(send, snapshotUrl, fallback);
       return;
     }
 
@@ -289,6 +308,7 @@ async function runGenerateDeploy(
         type: "deploy",
         data: { url, provider: "vercel", ms: 0 },
       });
+      emitShots(send, snapshotUrl, url);
       return;
     }
 
@@ -318,11 +338,11 @@ export async function POST(req: Request) {
 
       try {
         const origin = new URL(req.url).origin;
-        const audit = demoSlug
+        const { audit, snapshotUrl } = demoSlug
           ? await replayDemoTrace(send, demoSlug)
           : await runLiveAudit(input, send);
 
-        await runGenerateDeploy(audit, send, demoSlug, origin);
+        await runGenerateDeploy(audit, send, snapshotUrl, demoSlug, origin);
         send({ type: "done" });
       } catch (err) {
         send({

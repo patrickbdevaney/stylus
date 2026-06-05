@@ -12,6 +12,7 @@ import {
 import { AgentGraph, type AgentNode, type AgentVerdict } from "@/components/AgentGraph";
 import { ScoreCard } from "@/components/ScoreCard";
 import { BeforeAfter } from "@/components/BeforeAfter";
+import { VisualRegressionSlider } from "@/components/VisualRegressionSlider";
 
 const INITIAL_AGENTS: AgentNode[] = [
   { name: "auditor", role: "Scores the site", state: "idle", detail: "" },
@@ -37,6 +38,10 @@ export default function Page() {
   const [agents, setAgents] = useState<AgentNode[]>(INITIAL_AGENTS);
   const [handoffs, setHandoffs] = useState<{ from: string; to: string }[]>([]);
   const [agentVerdict, setAgentVerdict] = useState<AgentVerdict | null>(null);
+  const [shots, setShots] = useState<{
+    beforeUrl: string | null;
+    afterUrl: string | null;
+  } | null>(null);
 
   const demos = getDemoBusinesses();
 
@@ -51,6 +56,7 @@ export default function Page() {
     setAgents(INITIAL_AGENTS);
     setHandoffs([]);
     setAgentVerdict(null);
+    setShots(null);
   }
 
   function upsertAgent(
@@ -72,6 +78,12 @@ export default function Page() {
     if (event.type === "audit") setAudit(event.data);
     if (event.type === "snapshot") setOriginalUrl(event.data.url);
     if (event.type === "deploy") setDeployUrl(event.data.url);
+    if (event.type === "shots") {
+      setShots({
+        beforeUrl: event.beforeUrl,
+        afterUrl: event.afterUrl,
+      });
+    }
     if (event.type === "variant_winner") {
       setVariantWinner({
         variantIndex: event.variantIndex,
@@ -264,6 +276,14 @@ export default function Page() {
         )}
 
         {audit && <ScoreCard audit={audit} />}
+
+        {shots?.beforeUrl && shots?.afterUrl && audit && (
+          <VisualRegressionSlider
+            beforeSrc={shots.beforeUrl}
+            afterSrc={shots.afterUrl}
+            businessName={audit.businessName}
+          />
+        )}
 
         {deployUrl && audit && (
           <BeforeAfter

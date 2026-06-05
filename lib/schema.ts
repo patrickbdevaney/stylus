@@ -111,6 +111,7 @@ export type StreamEvent =
   | { type: "snapshot"; data: SiteSnapshot }
   | { type: "audit"; data: SiteAudit }
   | { type: "deploy"; data: DeployResult }
+  | { type: "shots"; beforeUrl: string | null; afterUrl: string | null }
   | { type: "variant_progress"; message: string }
   | {
       type: "variant_winner";
