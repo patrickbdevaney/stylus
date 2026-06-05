@@ -56,6 +56,8 @@ export type ResolveResult = z.infer<typeof ResolveResultSchema>;
 export const GeneratedSiteSchema = z.object({
   html: z.string(),
   businessName: z.string(),
+  copyProvider: z.string().optional(),
+  copyMs: z.number().int().nonnegative().optional(),
 });
 export type GeneratedSite = z.infer<typeof GeneratedSiteSchema>;
 
@@ -93,6 +95,13 @@ export type StreamEvent =
   | { type: "snapshot"; data: SiteSnapshot }
   | { type: "audit"; data: SiteAudit }
   | { type: "deploy"; data: DeployResult }
+  | { type: "variant_progress"; message: string }
+  | {
+      type: "variant_winner";
+      variantIndex: number;
+      score: number;
+      totalMs: number;
+    }
   | { type: "done" }
   | { type: "error"; message: string };
 

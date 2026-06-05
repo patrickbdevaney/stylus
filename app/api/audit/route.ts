@@ -2,7 +2,7 @@ import type { StreamEvent, SiteAudit } from "@/lib/schema";
 import { resolve } from "@/lib/agent/resolve";
 import { fetchSite } from "@/lib/agent/fetchSite";
 import { auditSite } from "@/lib/agent/auditSite";
-import { generateSite } from "@/lib/agent/generateSite";
+import { generateSiteWithVariants } from "@/lib/agent/generateSite";
 import { deploySite } from "@/lib/agent/deploySite";
 import { getDemo, findDemoByName, getDemoEntry, isDemoMode } from "@/lib/demo/seed";
 import { encodeSse, sleep } from "@/lib/stream";
@@ -178,7 +178,19 @@ async function runGenerateDeploy(
     delta: `Generating single-page site for ${audit.businessName} — hero, services, about, contact…\n`,
   });
 
-  const generated = await generateSite(audit);
+  const generated = await generateSiteWithVariants(
+    audit,
+    (delta) => send({ type: "reasoning", delta }),
+    (provider, ms) => {
+      send({
+        type: "reasoning",
+        delta: `Copy ready via ${provider} (${ms}ms)\n`,
+      });
+    },
+    (msg) => send({ type: "variant_progress", message: msg }),
+    (variantIndex, score, totalMs) =>
+      send({ type: "variant_winner", variantIndex, score, totalMs }),
+  );
 
   send({
     type: "step",

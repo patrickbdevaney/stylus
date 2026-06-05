@@ -21,6 +21,11 @@ export default function Page() {
   const [reasoning, setReasoning] = useState("");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [variantWinner, setVariantWinner] = useState<{
+    variantIndex: number;
+    score: number;
+    totalMs: number;
+  } | null>(null);
 
   const demos = getDemoBusinesses();
 
@@ -31,16 +36,29 @@ export default function Page() {
     setSteps([]);
     setReasoning("");
     setError(null);
+    setVariantWinner(null);
   }
 
   function handleStreamEvent(event: StreamEvent) {
     if (event.type === "audit") setAudit(event.data);
     if (event.type === "snapshot") setOriginalUrl(event.data.url);
     if (event.type === "deploy") setDeployUrl(event.data.url);
+    if (event.type === "variant_winner") {
+      setVariantWinner({
+        variantIndex: event.variantIndex,
+        score: event.score,
+        totalMs: event.totalMs,
+      });
+    }
 
     setSteps((prevSteps) => {
       const next = applyStreamEvent(
-        { steps: prevSteps, reasoning: "" },
+        {
+          steps: prevSteps,
+          reasoning: "",
+          variantLog: [],
+          variantWinner: null,
+        },
         event,
       );
       return next.steps;
@@ -166,7 +184,12 @@ export default function Page() {
         </div>
 
         {showTrace && (
-          <AuditStream steps={steps} reasoning={reasoning} running={running} />
+          <AuditStream
+            steps={steps}
+            reasoning={reasoning}
+            running={running}
+            variantWinner={variantWinner}
+          />
         )}
 
         {audit && <ScoreCard audit={audit} />}

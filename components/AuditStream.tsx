@@ -33,13 +33,27 @@ export type StepState = {
   message: string;
 };
 
+export type VariantWinnerState = {
+  variantIndex: number;
+  score: number;
+  totalMs: number;
+};
+
+export type StreamUiState = {
+  steps: StepState[];
+  reasoning: string;
+  variantLog: string[];
+  variantWinner: VariantWinnerState | null;
+};
+
 type Props = {
   steps: StepState[];
   reasoning: string;
   running?: boolean;
+  variantWinner: VariantWinnerState | null;
 };
 
-export function AuditStream({ steps, reasoning, running }: Props) {
+export function AuditStream({ steps, reasoning, running, variantWinner }: Props) {
   const reasoningRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
@@ -143,6 +157,13 @@ export function AuditStream({ steps, reasoning, running }: Props) {
         ))}
       </ol>
 
+      {variantWinner && (
+        <div className="mb-4 rounded-xl border border-neon-orange/50 bg-neon-orange/10 px-4 py-3 font-display text-sm uppercase tracking-wide text-neon-orange md:text-base">
+          🏆 Best of 3 variants · scored {variantWinner.score}/7 ·{" "}
+          {variantWinner.totalMs}ms total race
+        </div>
+      )}
+
       {reasoning && (
         <div
           className={`rounded-xl border bg-night/70 p-5 ${
@@ -205,11 +226,13 @@ function StepBadge({
 }
 
 export function applyStreamEvent(
-  prev: { steps: StepState[]; reasoning: string },
+  prev: StreamUiState,
   event: StreamEvent,
-): { steps: StepState[]; reasoning: string } {
+): StreamUiState {
   const steps = [...prev.steps];
   let reasoning = prev.reasoning;
+  let variantLog = prev.variantLog;
+  let variantWinner = prev.variantWinner;
 
   if (event.type === "step") {
     const idx = steps.findIndex((s) => s.step === event.step);
@@ -236,7 +259,19 @@ export function applyStreamEvent(
     reasoning += event.delta;
   }
 
-  return { steps, reasoning };
+  if (event.type === "variant_progress") {
+    variantLog = [...variantLog, event.message];
+  }
+
+  if (event.type === "variant_winner") {
+    variantWinner = {
+      variantIndex: event.variantIndex,
+      score: event.score,
+      totalMs: event.totalMs,
+    };
+  }
+
+  return { steps, reasoning, variantLog, variantWinner };
 }
 
 export async function consumeAuditStream(

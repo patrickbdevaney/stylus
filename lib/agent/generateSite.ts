@@ -1,3 +1,5 @@
+import { generateBestVariant } from "@/lib/agent/generateVariants";
+import type { GeneratedCopy } from "@/lib/agent/generateCopy";
 import type { GeneratedSite, SiteAudit } from "@/lib/schema";
 import {
   fillTemplateFromAudit,
@@ -5,16 +7,6 @@ import {
   renderFromAudit,
   renderSinglePage,
 } from "@/lib/template/singlePage";
-
-type GeneratedCopy = {
-  hero: string;
-  tagline: string;
-  services: { name: string; description: string }[];
-  about: string;
-  cta: string;
-  provider: string;
-  ms: number;
-};
 
 type ProviderConfig = {
   name: string;
@@ -308,74 +300,16 @@ async function generateLiveCopy(audit: SiteAudit): Promise<GeneratedCopy> {
 
 async function emitHeroTokens(
   hero: string,
-  onToken?: (token: string) => void,
+  provider: string,
+  onToken?: (delta: string, provider: string) => void,
+  delayMs = 20,
 ): Promise<void> {
   if (!onToken) return;
   const words = hero.split(/\s+/).filter(Boolean);
   for (const word of words) {
-    onToken(`${word} `);
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    onToken(`${word} `, provider);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
-}
-
-async function generateBestVariant(
-  audit: SiteAudit,
-  onProgress?: (msg: string) => void,
-): Promise<{
-  copy: GeneratedCopy;
-  html: string;
-  variantIndex: number;
-  raceDurationMs: number;
-}> {
-  onProgress?.("Racing 3 variants in parallel...");
-  const raceStart = Date.now();
-
-  const results = await Promise.allSettled([
-    generateLiveCopy(audit),
-    generateLiveCopy(audit),
-    generateLiveCopy(audit),
-  ]);
-
-  type ScoredVariant = {
-    copy: GeneratedCopy;
-    index: number;
-    score: number;
-  };
-
-  let fulfilled: ScoredVariant[] = results
-    .map((result, index) => {
-      if (result.status !== "fulfilled") return null;
-      return {
-        copy: result.value,
-        index,
-        score: scoreCopy(result.value),
-      };
-    })
-    .filter((v): v is ScoredVariant => v !== null);
-
-  if (fulfilled.length === 0) {
-    const fallback = await generateLiveCopy(audit);
-    fulfilled = [{ copy: fallback, index: 0, score: scoreCopy(fallback) }];
-  }
-
-  fulfilled.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return a.copy.ms - b.copy.ms;
-  });
-
-  const winner = fulfilled[0];
-  onProgress?.(
-    `Winner: variant ${winner.index} (${winner.copy.provider}, score ${winner.score}/7)`,
-  );
-
-  const html = renderWithCopy(audit, winner.copy);
-
-  return {
-    copy: winner.copy,
-    html,
-    variantIndex: winner.index,
-    raceDurationMs: Date.now() - raceStart,
-  };
 }
 
 export async function generateSite(audit: SiteAudit): Promise<GeneratedSite> {
@@ -401,7 +335,13 @@ export async function generateSiteWithLiveCopy(
   }
 
   const copy = await generateLiveCopy(audit);
-  await emitHeroTokens(copy.hero, callbacks?.onToken);
+  await emitHeroTokens(
+    copy.hero,
+    copy.provider,
+    callbacks?.onToken
+      ? (delta, provider) => callbacks.onToken?.(delta)
+      : undefined,
+  );
   callbacks?.onCopyDone?.(copy.provider, copy.ms);
 
   const html = renderWithCopy(audit, copy);
@@ -410,18 +350,41 @@ export async function generateSiteWithLiveCopy(
 
 export async function generateSiteWithVariants(
   audit: SiteAudit,
-  callbacks?: GenerateCopyCallbacks,
+  onToken?: (delta: string, provider: string) => void,
+  onCopyDone?: (provider: string, ms: number) => void,
+  onVariantProgress?: (msg: string) => void,
+  onVariantWinner?: (index: number, score: number, ms: number) => void,
 ): Promise<GeneratedSite> {
+  const liveCopyCallbacks: GenerateCopyCallbacks | undefined =
+    onToken || onCopyDone
+      ? {
+          onToken: onToken ? (delta) => onToken(delta, "") : undefined,
+          onCopyDone,
+        }
+      : undefined;
+
   if (
     process.env.LIVE_GENERATION !== "true" ||
     process.env.VARIANT_MODE !== "true"
   ) {
-    return generateSiteWithLiveCopy(audit, callbacks);
+    return generateSiteWithLiveCopy(audit, liveCopyCallbacks);
   }
 
-  const result = await generateBestVariant(audit, callbacks?.onProgress);
-  await emitHeroTokens(result.copy.hero, callbacks?.onToken);
-  callbacks?.onCopyDone?.(result.copy.provider, result.copy.ms);
+  try {
+    const variant = await generateBestVariant(audit, onVariantProgress);
+    const score = scoreCopy(variant.copy);
 
-  return { html: result.html, businessName: audit.businessName };
+    onCopyDone?.(variant.copy.provider, variant.copy.ms);
+    onVariantWinner?.(variant.variantIndex, score, variant.raceDurationMs);
+    await emitHeroTokens(variant.copy.hero, variant.copy.provider, onToken, 15);
+
+    return {
+      html: variant.html,
+      businessName: audit.businessName,
+      copyProvider: variant.copy.provider,
+      copyMs: variant.copy.ms,
+    };
+  } catch {
+    return generateSiteWithLiveCopy(audit, liveCopyCallbacks);
+  }
 }
