@@ -13,6 +13,7 @@ import { AgentGraph, type AgentNode, type AgentVerdict } from "@/components/Agen
 import { ProviderScoreboard } from "@/components/ProviderScoreboard";
 import { ScoreCard } from "@/components/ScoreCard";
 import { BeforeAfter } from "@/components/BeforeAfter";
+import { DeployShareCard } from "@/components/DeployShareCard";
 import { VisualRegressionSlider } from "@/components/VisualRegressionSlider";
 import { SeoGapPanel } from "@/components/SeoGapPanel";
 import { LighthousePanel } from "@/components/LighthousePanel";
@@ -383,6 +384,7 @@ export default function Page() {
             >
               Open live site ↗
             </a>
+            <DeployShareCard url={deployUrl} />
           </div>
         )}
 
