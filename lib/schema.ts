@@ -26,6 +26,7 @@ export const SiteAuditSchema = z.object({
     palette: z.array(z.string()).min(2),
     services: z.array(z.string()),
   }),
+  brandTier: z.enum(["iconic", "established", "generic"]).optional(),
 });
 export type SiteAudit = z.infer<typeof SiteAuditSchema>;
 

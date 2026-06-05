@@ -12,6 +12,7 @@ export type TemplateFill = {
   services: { name: string; description: string }[];
   about: string;
   palette: string[];
+  brandTier?: "iconic" | "established" | "generic";
 };
 
 /** Deterministic template-fill from audit — no LLM, bounded and fast. */
@@ -34,6 +35,7 @@ export function fillTemplateFromAudit(audit: SiteAudit): TemplateFill {
     services,
     about: buildAboutCopy(audit),
     palette: audit.brand.palette.length >= 2 ? audit.brand.palette : DEFAULT_PALETTE,
+    brandTier: audit.brandTier ?? "generic",
   };
 }
 
@@ -78,11 +80,57 @@ export function renderEmptyShell(businessName = "Stylus Demo"): string {
   });
 }
 
+function tierCss(fill: TemplateFill, pink: string) {
+  const tier = fill.brandTier ?? "generic";
+  const gridOpacity = tier === "established" ? "0.015" : "0.03";
+  const glow = (alpha: number) =>
+    tier === "established" ? (alpha * 0.6).toFixed(3) : String(alpha);
+
+  const bodyBackground =
+    tier === "iconic"
+      ? "background-color:var(--night);background-image:none;"
+      : `background-image:
+    linear-gradient(rgba(0,240,255,${gridOpacity}) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,240,255,${gridOpacity}) 1px,transparent 1px);
+  background-size:40px 40px;`;
+
+  const logo =
+    tier === "iconic"
+      ? `.logo{font-weight:800;font-size:1.1rem;letter-spacing:0.05em;color:${pink};border-bottom:2px solid ${pink}}`
+      : `.logo{font-weight:800;font-size:1.1rem;letter-spacing:0.05em;
+  background:linear-gradient(90deg,var(--pink),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}`;
+
+  const heroH1 =
+    tier === "iconic"
+      ? `.hero h1{
+  position:relative;
+  font-size:clamp(2.2rem,8vw,4.25rem);font-weight:700;text-transform:uppercase;
+  letter-spacing:0.01em;line-height:1.05;margin-bottom:1rem;
+}`
+      : `.hero h1{
+  position:relative;
+  font-size:clamp(2.2rem,8vw,4.25rem);font-weight:900;text-transform:uppercase;
+  letter-spacing:0.02em;line-height:1.05;margin-bottom:1rem;
+  text-shadow:0 0 40px rgba(255,45,149,0.35);
+}`;
+
+  const ctaGlow = glow(0.45);
+  const ctaHoverGlow = glow(0.55);
+  const cardGlow = glow(0.08);
+  const cardHoverGlow = glow(0.12);
+  const stickyGlow = glow(0.4);
+
+  return { bodyBackground, logo, heroH1, ctaGlow, ctaHoverGlow, cardGlow, cardHoverGlow, stickyGlow };
+}
+
 export function renderSinglePage(fill: TemplateFill): string {
   const [pink, cyan, purple, orange] = [
     ...fill.palette,
     ...DEFAULT_PALETTE,
   ].slice(0, 4);
+
+  const css = tierCss(fill, pink);
 
   const telHref = fill.phone ? phoneTel(fill.phone) : null;
 
@@ -123,10 +171,7 @@ html{scroll-behavior:smooth}
 body{
   font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
   background:var(--night);color:#e8e8f0;line-height:1.6;padding-bottom:4rem;
-  background-image:
-    linear-gradient(rgba(0,240,255,0.03) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,240,255,0.03) 1px,transparent 1px);
-  background-size:40px 40px;
+  ${css.bodyBackground}
 }
 .palm{
   position:fixed;bottom:0;right:-20px;width:180px;height:220px;opacity:0.06;pointer-events:none;
@@ -139,9 +184,7 @@ nav{
   background:rgba(10,10,18,0.9);backdrop-filter:blur(12px);
   border-bottom:1px solid var(--border);
 }
-.logo{font-weight:800;font-size:1.1rem;letter-spacing:0.05em;
-  background:linear-gradient(90deg,var(--pink),var(--cyan));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+${css.logo}
 nav a{color:var(--cyan);text-decoration:none;font-size:0.9rem;margin-left:1.25rem}
 nav .call-nav{
   margin-left:1.25rem;padding:0.4rem 1rem;border-radius:999px;
@@ -163,21 +206,16 @@ nav .call-nav{
   border:1px solid var(--border);color:var(--cyan);font-size:0.8rem;
   text-transform:uppercase;letter-spacing:0.12em;
 }
-.hero h1{
-  position:relative;
-  font-size:clamp(2.2rem,8vw,4.25rem);font-weight:900;text-transform:uppercase;
-  letter-spacing:0.02em;line-height:1.05;margin-bottom:1rem;
-  text-shadow:0 0 40px rgba(255,45,149,0.35);
-}
+${css.heroH1}
 .hero p{font-size:clamp(1rem,3vw,1.3rem);color:#a0a0b8;max-width:36rem;margin-bottom:2rem;position:relative}
 .cta{
   position:relative;
   display:inline-block;padding:1rem 2.5rem;border-radius:999px;
   background:linear-gradient(135deg,var(--pink),var(--purple));
   color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;
-  box-shadow:0 0 28px rgba(255,45,149,0.45);transition:transform 0.2s,box-shadow 0.2s;
+  box-shadow:0 0 28px rgba(255,45,149,${css.ctaGlow});transition:transform 0.2s,box-shadow 0.2s;
 }
-.cta:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(255,45,149,0.55)}
+.cta:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(255,45,149,${css.ctaHoverGlow})}
 section{padding:4rem 1.5rem;max-width:960px;margin:0 auto}
 section h2{
   font-size:1.75rem;font-weight:800;margin-bottom:2rem;text-align:center;
@@ -188,10 +226,10 @@ section h2{
 .card{
   padding:1.5rem;border-radius:12px;
   background:var(--glass);border:1px solid var(--border);
-  box-shadow:0 0 20px rgba(0,240,255,0.08);
+  box-shadow:0 0 20px rgba(0,240,255,${css.cardGlow});
   transition:border-color 0.2s,box-shadow 0.2s;
 }
-.card:hover{border-color:rgba(255,45,149,0.4);box-shadow:0 0 24px rgba(255,45,149,0.12)}
+.card:hover{border-color:rgba(255,45,149,0.4);box-shadow:0 0 24px rgba(255,45,149,${css.cardHoverGlow})}
 .card h3{color:var(--cyan);margin-bottom:0.5rem;font-size:1.1rem}
 .card p{color:#8888a0;font-size:0.95rem;line-height:1.55}
 .about-text{text-align:center;color:#a0a0b8;max-width:640px;margin:0 auto;font-size:1.05rem;line-height:1.7}
@@ -208,7 +246,7 @@ section h2{
   display:none;position:fixed;bottom:0;left:0;right:0;z-index:20;
   padding:1rem;text-align:center;font-weight:700;font-size:1.1rem;
   background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;text-decoration:none;
-  box-shadow:0 -4px 24px rgba(255,45,149,0.4);
+  box-shadow:0 -4px 24px rgba(255,45,149,${css.stickyGlow});
 }
 footer{
   text-align:center;padding:2rem 1.5rem 3rem;color:#55556a;font-size:0.85rem;

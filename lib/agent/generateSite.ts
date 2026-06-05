@@ -201,6 +201,7 @@ function renderWithCopy(audit: SiteAudit, copy: GeneratedCopy): string {
     tagline: copy.tagline ? `${copy.hero} — ${copy.tagline}` : copy.hero || fill.tagline,
     services: copy.services.length > 0 ? copy.services : fill.services,
     about: copy.about || fill.about,
+    brandTier: audit.brandTier ?? "generic",
   });
 }
 
