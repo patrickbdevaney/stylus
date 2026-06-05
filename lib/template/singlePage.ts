@@ -154,12 +154,55 @@ export function renderSinglePage(fill: TemplateFill): string {
     ? `<a href="tel:${escapeHtml(telHref)}" class="sticky-call" aria-label="Call ${escapeHtml(fill.businessName)}">📞 Call now</a>`
     : "";
 
+  const category = fill.category.toLowerCase();
+  const schemaType =
+    category.includes("restaurant") ||
+    category.includes("cafe") ||
+    category.includes("coffee") ||
+    category.includes("bar")
+      ? "Restaurant"
+      : category.includes("retail") ||
+          category.includes("shop") ||
+          category.includes("store")
+        ? "Store"
+        : "LocalBusiness";
+
+  const jsonLdRaw: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": schemaType,
+    name: fill.businessName,
+    description: fill.tagline,
+    address: fill.address
+      ? {
+          "@type": "PostalAddress",
+          streetAddress: fill.address,
+          addressLocality: "Miami",
+          addressRegion: "FL",
+          addressCountry: "US",
+        }
+      : undefined,
+    telephone: fill.phone ?? undefined,
+    email: fill.email ?? undefined,
+    url: "https://stylus.vercel.app",
+    priceRange: "$$",
+    areaServed: "Miami, FL",
+    sameAs: [],
+  };
+
+  const jsonLd = Object.fromEntries(
+    Object.entries(jsonLdRaw).filter(([, v]) => v !== undefined),
+  );
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="${escapeHtml(fill.tagline)}">
+<meta property="og:title" content="${escapeHtml(fill.businessName)}">
+<meta property="og:description" content="${escapeHtml(fill.tagline)}">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="${pink}">
 <title>${escapeHtml(fill.businessName)} | ${escapeHtml(fill.category)} · Miami</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -260,6 +303,7 @@ footer{
 }
 @media(min-width:601px){nav .call-nav{display:inline-block}}
 </style>
+<script type="application/ld+json">${JSON.stringify(jsonLd, null, 2)}</script>
 </head>
 <body>
 <div class="palm" aria-hidden="true"></div>
