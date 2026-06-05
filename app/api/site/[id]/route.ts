@@ -7,7 +7,7 @@ export async function GET(
   _req: Request,
   { params }: { params: { id: string } },
 ) {
-  const html = getPreviewHtml(params.id);
+  const html = await getPreviewHtml(params.id);
   if (!html) {
     return new Response("Preview expired or not found", { status: 404 });
   }

@@ -239,7 +239,7 @@ async function runGenerateDeploy(
     }
 
     if (origin) {
-      const id = storePreviewHtml(generated.html);
+      const id = await storePreviewHtml(generated.html);
       const url = previewUrl(id, origin);
       send({
         type: "reasoning",
