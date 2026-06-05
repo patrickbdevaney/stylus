@@ -1,9 +1,11 @@
-import Anthropic from "@anthropic-ai/sdk";
 import type { EnrichmentContext, SiteAudit, SiteSnapshot } from "@/lib/schema";
 import { SiteAuditSchema } from "@/lib/schema";
-import { EMIT_AUDIT_TOOL } from "@/lib/auditToolSchema";
 import { buildFallbackAudit } from "@/lib/agent/fallbackAudit";
 import { getDemo, findDemoByName, isDemoMode } from "@/lib/demo/seed";
+
+const AUDIT_BASE_URL = "https://api.deepinfra.com/v1/openai";
+const AUDIT_MODEL = process.env.AUDIT_MODEL ?? "deepseek-ai/DeepSeek-V4-Flash";
+const AUDIT_KEY = process.env.DEEPINFRA_API_KEY;
 
 export type AuditOptions = {
   demoSlug?: string;
@@ -37,6 +39,35 @@ function buildEnrichmentBlock(enrichment: EnrichmentContext): string {
   return lines.join("\n");
 }
 
+function jsonShapeInstruction(): string {
+  return `
+
+Respond with ONLY one JSON object (no markdown fences) matching this exact shape:
+{
+  "businessName": string,
+  "category": string,
+  "overallScore": integer 0-100,
+  "dimensions": {
+    "clarity": { "score": integer 0-100, "reason": string },
+    "trust": { "score": integer 0-100, "reason": string },
+    "mobile": { "score": integer 0-100, "reason": string },
+    "speed": { "score": integer 0-100, "reason": string },
+    "conversion": { "score": integer 0-100, "reason": string },
+    "localSeo": { "score": integer 0-100, "reason": string }
+  },
+  "topFixes": [ string, string, string ] (1 to 3 items),
+  "brand": {
+    "tagline": string,
+    "phone": string | null,
+    "address": string | null,
+    "email": string | null,
+    "palette": [ string, string ] (at least 2 hex colors),
+    "services": [ string ]
+  },
+  "brandTier": "iconic" | "established" | "generic" (optional)
+}`;
+}
+
 function buildAuditPrompt(
   snapshot: SiteSnapshot,
   repair = false,
@@ -51,7 +82,7 @@ function buildAuditPrompt(
     .join("\n");
 
   const repairNote = repair
-    ? "\n\nIMPORTANT: Your previous response failed validation. Return ONLY the emit_audit tool with complete, schema-valid fields."
+    ? "\n\nIMPORTANT: Your previous response failed validation. Return ONLY a single JSON object with complete, schema-valid fields. No markdown, no prose."
     : "";
 
   return `You are auditing a small Miami business website. Score honestly (0–100 per dimension). Write reasons in plain language a business owner understands — no jargon.
@@ -68,48 +99,108 @@ ${contact || "none found"}
 Site content excerpt:
 ${snapshot.rawText.slice(0, 4000)}
 
-Use the emit_audit tool. Include brand.palette with at least 2 hex colors (default Miami neon: #ff2d95, #00f0ff, #9d4edd, #ff6b35). Extract real contact info when present; use null when missing.${enrichment ? buildEnrichmentBlock(enrichment) : ""}${repairNote}`;
+Include brand.palette with at least 2 hex colors (default Miami neon: #ff2d95, #00f0ff, #9d4edd, #ff6b35). Extract real contact info when present; use null when missing.${enrichment ? buildEnrichmentBlock(enrichment) : ""}${jsonShapeInstruction()}${repairNote}`;
 }
 
+function extractAuditJson(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start === -1 || end === -1 || end <= start) {
+      throw new Error("No JSON object found in audit response");
+    }
+    return JSON.parse(text.slice(start, end + 1)) as unknown;
+  }
+}
+
+type ChatCompletionChunk = {
+  choices?: { delta?: { content?: string } }[];
+};
+
 async function streamAuditCall(
-  client: Anthropic,
   snapshot: SiteSnapshot,
   onReasoning: ((delta: string) => void) | undefined,
   repair: boolean,
   enrichment?: EnrichmentContext,
-): Promise<unknown> {
-  const stream = client.messages.stream({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 4096,
-    tools: [EMIT_AUDIT_TOOL],
-    tool_choice: { type: "tool", name: "emit_audit" },
-    messages: [
-      {
-        role: "user",
-        content: buildAuditPrompt(snapshot, repair, enrichment),
-      },
-    ],
+): Promise<string> {
+  const key = AUDIT_KEY;
+  if (!key) {
+    throw new Error("DEEPINFRA_API_KEY is not set");
+  }
+
+  const res = await fetch(`${AUDIT_BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: AUDIT_MODEL,
+      stream: true,
+      max_tokens: 2000,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a website auditor. Respond with ONLY a JSON object matching the requested schema. No markdown, no prose.",
+        },
+        {
+          role: "user",
+          content: buildAuditPrompt(snapshot, repair, enrichment),
+        },
+      ],
+    }),
   });
 
-  for await (const event of stream) {
-    if (
-      event.type === "content_block_delta" &&
-      event.delta.type === "text_delta"
-    ) {
-      onReasoning?.(event.delta.text);
+  if (!res.ok) {
+    throw new Error(`Audit API failed (${res.status})`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) {
+    throw new Error("No response body from audit API");
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let accumulated = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+
+      const data = trimmed.slice(5).trim();
+      if (data === "[DONE]") continue;
+
+      try {
+        const parsed = JSON.parse(data) as ChatCompletionChunk;
+        const delta = parsed.choices?.[0]?.delta?.content;
+        if (delta) {
+          accumulated += delta;
+          onReasoning?.(delta);
+        }
+      } catch {
+        // skip malformed SSE chunk
+      }
     }
   }
 
-  const final = await stream.finalMessage();
-  const toolBlock = final.content.find(
-    (b) => b.type === "tool_use" && b.name === "emit_audit",
-  );
-
-  if (!toolBlock || toolBlock.type !== "tool_use") {
-    throw new Error("Model did not return emit_audit tool output");
+  if (!accumulated.trim()) {
+    throw new Error("Empty audit response from model");
   }
 
-  return toolBlock.input;
+  return accumulated;
 }
 
 export async function auditSite(
@@ -126,23 +217,20 @@ export async function auditSite(
     if (demo) return demo.audit;
   }
 
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) {
-    opts?.onReasoning?.("No ANTHROPIC_API_KEY — using deterministic fallback.\n");
+  if (!AUDIT_KEY) {
+    opts?.onReasoning?.("No DEEPINFRA_API_KEY — using deterministic fallback.\n");
     return buildFallbackAudit(snapshot);
   }
 
-  const client = new Anthropic({ apiKey: key });
-
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const raw = await streamAuditCall(
-        client,
+      const rawText = await streamAuditCall(
         snapshot,
         opts?.onReasoning,
         attempt > 0,
         opts?.enrichment,
       );
+      const raw = extractAuditJson(rawText);
       return SiteAuditSchema.parse(raw);
     } catch (err) {
       if (attempt === 0) {
