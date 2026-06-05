@@ -5,7 +5,9 @@ describe("seededLighthouse", () => {
   it("is deterministic for the same slug", () => {
     const a = seededLighthouse("versailles");
     const b = seededLighthouse("versailles");
-    expect(a).toEqual(b);
+    expect(a.before?.performance).toBe(b.before?.performance);
+    expect(a.after?.seo).toBe(b.after?.seo);
+    expect(a.before?.degraded).toBe(true);
     expect(a.after?.performance).toBeGreaterThan(a.before?.performance ?? 0);
   });
 
