@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { SiteAudit, StreamEvent } from "@/lib/schema";
 import { getDemoBusinesses } from "@/lib/demo/seed";
 import {
@@ -17,8 +17,11 @@ import { DeployShareCard } from "@/components/DeployShareCard";
 import { VisualRegressionSlider } from "@/components/VisualRegressionSlider";
 import { SeoGapPanel } from "@/components/SeoGapPanel";
 import { LighthousePanel } from "@/components/LighthousePanel";
+import { CostReceipt } from "@/components/CostReceipt";
 import type { SeoGapResponse } from "@/lib/seoGap";
 import type { LighthouseDelta } from "@/lib/lighthouse";
+
+const AUDIT_MODEL_LABEL = "DeepSeek V4 Flash";
 
 const INITIAL_AGENTS: AgentNode[] = [
   { name: "auditor", role: "Scores the site", state: "idle", detail: "" },
@@ -61,6 +64,8 @@ export default function Page() {
     confidence: number;
     adjustments: string[];
   } | null>(null);
+  const [pipelineTotalMs, setPipelineTotalMs] = useState<number | null>(null);
+  const pipelineStartRef = useRef<number | null>(null);
 
   const demos = getDemoBusinesses();
 
@@ -81,6 +86,8 @@ export default function Page() {
     setSeoValidation(null);
     setProviderResults([]);
     setCritique(null);
+    setPipelineTotalMs(null);
+    pipelineStartRef.current = null;
   }
 
   function fetchSeoGap(audit: SiteAudit) {
@@ -208,12 +215,16 @@ export default function Page() {
   async function runPipeline(opts: { input?: string; demoSlug?: string }) {
     setRunning(true);
     resetResults();
+    pipelineStartRef.current = Date.now();
 
     try {
       await consumeAuditStream(opts, handleStreamEvent);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Pipeline failed");
     } finally {
+      if (pipelineStartRef.current != null) {
+        setPipelineTotalMs(Date.now() - pipelineStartRef.current);
+      }
       setRunning(false);
     }
   }
@@ -408,6 +419,17 @@ export default function Page() {
           <p className="mt-8 rounded-xl border-2 border-red-500/50 bg-red-500/15 px-6 py-4 text-center text-lg font-semibold text-red-200">
             {error}
           </p>
+        )}
+
+        {audit && pipelineTotalMs != null && (
+          <CostReceipt
+            providers={providerResults.map((r) => ({
+              name: r.provider,
+              ms: r.ms,
+            }))}
+            auditModel={AUDIT_MODEL_LABEL}
+            totalMs={pipelineTotalMs}
+          />
         )}
 
         <footer className="mt-20 text-center font-display text-base uppercase tracking-[0.25em] text-white/25">
