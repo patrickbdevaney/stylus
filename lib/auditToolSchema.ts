@@ -77,6 +77,10 @@ export const EMIT_AUDIT_TOOL = {
           },
         },
       },
+      brandTier: {
+        type: "string" as const,
+        enum: ["iconic", "established", "generic"],
+      },
     },
   },
 };

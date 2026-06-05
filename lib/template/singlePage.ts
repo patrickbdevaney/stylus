@@ -80,11 +80,20 @@ export function renderEmptyShell(businessName = "Stylus Demo"): string {
   });
 }
 
-function tierCss(fill: TemplateFill, pink: string) {
+function tierCss(
+  fill: TemplateFill,
+  vars: { pink: string; cyan: string; purple: string; orange: string },
+) {
   const tier = fill.brandTier ?? "generic";
+  const { pink, cyan, purple, orange } = vars;
   const gridOpacity = tier === "established" ? "0.015" : "0.03";
   const glow = (alpha: number) =>
     tier === "established" ? (alpha * 0.6).toFixed(3) : String(alpha);
+
+  const root = `:root{
+  --night:#0a0a12;--pink:${pink};--cyan:${cyan};--purple:${purple};--orange:${orange};
+  --glass:rgba(255,255,255,0.04);--border:rgba(0,240,255,0.25);
+}`;
 
   const bodyBackground =
     tier === "iconic"
@@ -115,22 +124,41 @@ function tierCss(fill: TemplateFill, pink: string) {
   text-shadow:0 0 40px rgba(255,45,149,0.35);
 }`;
 
+  const rootAndOverrides = root;
+
   const ctaGlow = glow(0.45);
   const ctaHoverGlow = glow(0.55);
   const cardGlow = glow(0.08);
   const cardHoverGlow = glow(0.12);
   const stickyGlow = glow(0.4);
 
-  return { bodyBackground, logo, heroH1, ctaGlow, ctaHoverGlow, cardGlow, cardHoverGlow, stickyGlow };
+  return {
+    rootAndOverrides,
+    bodyBackground,
+    logo,
+    heroH1,
+    ctaGlow,
+    ctaHoverGlow,
+    cardGlow,
+    cardHoverGlow,
+    stickyGlow,
+  };
 }
 
 export function renderSinglePage(fill: TemplateFill): string {
+  const tier = fill.brandTier ?? "generic";
+  const paletteSource =
+    tier === "generic"
+      ? DEFAULT_PALETTE
+      : fill.palette.length >= 2
+        ? fill.palette
+        : DEFAULT_PALETTE;
   const [pink, cyan, purple, orange] = [
-    ...fill.palette,
+    ...paletteSource,
     ...DEFAULT_PALETTE,
   ].slice(0, 4);
 
-  const css = tierCss(fill, pink);
+  const css = tierCss(fill, { pink, cyan, purple, orange });
 
   const telHref = fill.phone ? phoneTel(fill.phone) : null;
 
@@ -206,10 +234,7 @@ export function renderSinglePage(fill: TemplateFill): string {
 <title>${escapeHtml(fill.businessName)} | ${escapeHtml(fill.category)} · Miami</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --night:#0a0a12;--pink:${pink};--cyan:${cyan};--purple:${purple};--orange:${orange};
-  --glass:rgba(255,255,255,0.04);--border:rgba(0,240,255,0.25);
-}
+${css.rootAndOverrides}
 html{scroll-behavior:smooth}
 body{
   font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
