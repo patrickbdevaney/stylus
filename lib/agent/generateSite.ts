@@ -349,12 +349,50 @@ export async function generateSiteWithLiveCopy(
   return { html, businessName: audit.businessName };
 }
 
+export type AgentTrace = {
+  onSpawn?: (agent: string, role: string) => void;
+  onActive?: (agent: string, detail: string) => void;
+  onAgentDone?: (agent: string, ms: number, output: string) => void;
+  onHandoff?: (from: string, to: string) => void;
+  onVerdict?: (
+    agent: string,
+    accepted: string,
+    rejected: string[],
+    reason: string,
+  ) => void;
+};
+
+function emitCouncilSpawn(trace?: AgentTrace) {
+  trace?.onSpawn?.("auditor", "Scores the site");
+  trace?.onSpawn?.("researcher", "Brand context");
+  trace?.onSpawn?.("copywriter", "Rewrites copy");
+  trace?.onSpawn?.("critic", "Judges variants");
+}
+
+function wrapVariantProgress(
+  trace: AgentTrace | undefined,
+  onVariantProgress?: (msg: string) => void,
+): (msg: string) => void {
+  return (msg: string) => {
+    const doneMatch = msg.match(/Variant (\d+) complete \(([^,]+), (\d+)ms\)/);
+    if (doneMatch) {
+      trace?.onAgentDone?.(
+        "copywriter",
+        Number(doneMatch[3]),
+        `variant ${doneMatch[1]} (${doneMatch[2]})`,
+      );
+    }
+    onVariantProgress?.(msg);
+  };
+}
+
 export async function generateSiteWithVariants(
   audit: SiteAudit,
   onToken?: (delta: string, provider: string) => void,
   onCopyDone?: (provider: string, ms: number) => void,
   onVariantProgress?: (msg: string) => void,
   onVariantWinner?: (index: number, score: number, ms: number) => void,
+  agentTrace?: AgentTrace,
 ): Promise<GeneratedSite> {
   const liveCopyCallbacks: GenerateCopyCallbacks | undefined =
     onToken || onCopyDone
@@ -372,8 +410,28 @@ export async function generateSiteWithVariants(
   }
 
   try {
-    const variant = await generateBestVariant(audit, onVariantProgress);
+    emitCouncilSpawn(agentTrace);
+    agentTrace?.onActive?.(
+      "copywriter",
+      "Racing 3 variants across 6 models",
+    );
+
+    const variant = await generateBestVariant(
+      audit,
+      wrapVariantProgress(agentTrace, onVariantProgress),
+    );
     const score = scoreCopy(variant.copy);
+
+    agentTrace?.onHandoff?.("copywriter", "critic");
+    const rejected = [0, 1, 2]
+      .filter((i) => i !== variant.variantIndex)
+      .map(String);
+    agentTrace?.onVerdict?.(
+      "critic",
+      `variant ${variant.variantIndex}`,
+      rejected,
+      `Chose highest score ${score}/7; rejected lower-scoring variants`,
+    );
 
     onCopyDone?.(variant.copy.provider, variant.copy.ms);
     onVariantWinner?.(variant.variantIndex, score, variant.raceDurationMs);

@@ -208,6 +208,22 @@ async function runGenerateDeploy(
     (msg) => send({ type: "variant_progress", message: msg }),
     (variantIndex, score, totalMs) =>
       send({ type: "variant_winner", variantIndex, score, totalMs }),
+    {
+      onSpawn: (agent, role) => send({ type: "agent_spawn", agent, role }),
+      onActive: (agent, detail) =>
+        send({ type: "agent_active", agent, detail }),
+      onAgentDone: (agent, ms, output) =>
+        send({ type: "agent_done", agent, ms, output }),
+      onHandoff: (from, to) => send({ type: "agent_handoff", from, to }),
+      onVerdict: (agent, accepted, rejected, reason) =>
+        send({
+          type: "agent_verdict",
+          agent,
+          accepted,
+          rejected,
+          reason,
+        }),
+    },
   );
 
   send({

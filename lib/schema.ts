@@ -118,6 +118,17 @@ export type StreamEvent =
       score: number;
       totalMs: number;
     }
+  | { type: "agent_spawn"; agent: string; role: string }
+  | { type: "agent_active"; agent: string; detail: string }
+  | { type: "agent_done"; agent: string; ms: number; output: string }
+  | { type: "agent_handoff"; from: string; to: string }
+  | {
+      type: "agent_verdict";
+      agent: string;
+      accepted: string;
+      rejected: string[];
+      reason: string;
+    }
   | { type: "done" }
   | { type: "error"; message: string };
 
