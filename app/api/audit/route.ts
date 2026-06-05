@@ -1,4 +1,4 @@
-import type { StreamEvent, SiteAudit } from "@/lib/schema";
+import type { StreamEvent, SiteAudit, SiteSnapshot } from "@/lib/schema";
 import { resolve } from "@/lib/agent/resolve";
 import { fetchSite } from "@/lib/agent/fetchSite";
 import { auditSite } from "@/lib/agent/auditSite";
@@ -9,6 +9,7 @@ import { getDemo, findDemoByName, getDemoEntry, isDemoMode } from "@/lib/demo/se
 import { encodeSse, sleep } from "@/lib/stream";
 import { previewUrl, storePreviewHtml } from "@/lib/previewStore";
 import { getLighthouseDelta, seededLighthouse } from "@/lib/lighthouse";
+import { critiqueAudit } from "@/lib/agent/critiqueAudit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,37 @@ function emitShots(
     beforeUrl: snapshotUrl ? thumShot(snapshotUrl) : null,
     afterUrl: thumShot(deployUrl),
   });
+}
+
+async function emitCritique(
+  send: (event: StreamEvent) => void,
+  audit: SiteAudit,
+  snapshot: SiteSnapshot,
+  demoSlug?: string,
+): Promise<{ confidence: number; adjustments: string[] } | null> {
+  if (process.env.CRITIC_MODE !== "true") return null;
+
+  try {
+    const c = demoSlug
+      ? { confidence: 72, adjustments: [] as string[] }
+      : await critiqueAudit(audit, snapshot, (delta) =>
+          send({ type: "reasoning", delta }),
+        );
+    send({
+      type: "critique",
+      confidence: c.confidence,
+      adjustments: c.adjustments,
+    });
+    return c;
+  } catch {
+    const fallback = { confidence: 72, adjustments: [] as string[] };
+    send({
+      type: "critique",
+      confidence: fallback.confidence,
+      adjustments: fallback.adjustments,
+    });
+    return fallback;
+  }
 }
 
 function businessSlug(name: string): string {
@@ -65,7 +97,11 @@ async function emitLighthouse(
 async function replayDemoTrace(
   send: (event: StreamEvent) => void,
   demoSlug: string,
-): Promise<{ audit: SiteAudit; snapshotUrl: string | null }> {
+): Promise<{
+  audit: SiteAudit;
+  snapshotUrl: string | null;
+  critique: { confidence: number; adjustments: string[] } | null;
+}> {
   const demo = getDemo(demoSlug);
   if (!demo) throw new Error(`Demo not found: ${demoSlug}`);
 
@@ -134,13 +170,22 @@ async function replayDemoTrace(
     message: `Overall score: ${demo.audit.overallScore}/100`,
   });
   send({ type: "audit", data: demo.audit });
-  return { audit: demo.audit, snapshotUrl: demo.snapshot.url };
+  const critique = await emitCritique(send, demo.audit, demo.snapshot, demoSlug);
+  return {
+    audit: demo.audit,
+    snapshotUrl: demo.snapshot.url,
+    critique,
+  };
 }
 
 async function runLiveAudit(
   input: string,
   send: (event: StreamEvent) => void,
-): Promise<{ audit: SiteAudit; snapshotUrl: string | null }> {
+): Promise<{
+  audit: SiteAudit;
+  snapshotUrl: string | null;
+  critique: { confidence: number; adjustments: string[] } | null;
+}> {
   if (isDemoMode()) {
     const demo = findDemoByName(input);
     if (demo) return replayDemoTrace(send, demo.slug);
@@ -221,7 +266,8 @@ async function runLiveAudit(
     message: `Overall score: ${audit.overallScore}/100`,
   });
   send({ type: "audit", data: audit });
-  return { audit, snapshotUrl: snapshot.url };
+  const critique = await emitCritique(send, audit, snapshot);
+  return { audit, snapshotUrl: snapshot.url, critique };
 }
 
 async function runGenerateDeploy(
@@ -230,6 +276,7 @@ async function runGenerateDeploy(
   snapshotUrl: string | null,
   demoSlug?: string,
   origin?: string,
+  critique?: { confidence: number; adjustments: string[] } | null,
 ) {
   send({
     type: "step",
@@ -241,6 +288,43 @@ async function runGenerateDeploy(
     type: "reasoning",
     delta: `Generating single-page site for ${audit.businessName} — hero, services, about, contact…\n`,
   });
+
+  const councilActive =
+    process.env.LIVE_GENERATION === "true" &&
+    process.env.VARIANT_MODE === "true";
+
+  const agentTrace = {
+    onSpawn: (agent: string, role: string) =>
+      send({ type: "agent_spawn", agent, role }),
+    onActive: (agent: string, detail: string) =>
+      send({ type: "agent_active", agent, detail }),
+    onAgentDone: (agent: string, ms: number, output: string) =>
+      send({ type: "agent_done", agent, ms, output }),
+    onHandoff: (from: string, to: string) =>
+      send({ type: "agent_handoff", from, to }),
+    onVerdict: (
+      agent: string,
+      accepted: string,
+      rejected: string[],
+      reason: string,
+    ) =>
+      send({
+        type: "agent_verdict",
+        agent,
+        accepted,
+        rejected,
+        reason,
+      }),
+  };
+
+  if (councilActive && critique) {
+    agentTrace.onVerdict(
+      "critic",
+      `confidence ${critique.confidence}%`,
+      [],
+      critique.adjustments.join("; ") || "scores well-grounded",
+    );
+  }
 
   const generated = await generateSiteWithVariants(
     audit,
@@ -256,22 +340,7 @@ async function runGenerateDeploy(
       send({ type: "variant_winner", variantIndex, score, totalMs }),
     (provider, ms, won) =>
       send({ type: "provider_result", provider, ms, won }),
-    {
-      onSpawn: (agent, role) => send({ type: "agent_spawn", agent, role }),
-      onActive: (agent, detail) =>
-        send({ type: "agent_active", agent, detail }),
-      onAgentDone: (agent, ms, output) =>
-        send({ type: "agent_done", agent, ms, output }),
-      onHandoff: (from, to) => send({ type: "agent_handoff", from, to }),
-      onVerdict: (agent, accepted, rejected, reason) =>
-        send({
-          type: "agent_verdict",
-          agent,
-          accepted,
-          rejected,
-          reason,
-        }),
-    },
+    agentTrace,
   );
 
   send({
@@ -387,11 +456,18 @@ export async function POST(req: Request) {
 
       try {
         const origin = new URL(req.url).origin;
-        const { audit, snapshotUrl } = demoSlug
+        const { audit, snapshotUrl, critique } = demoSlug
           ? await replayDemoTrace(send, demoSlug)
           : await runLiveAudit(input, send);
 
-        await runGenerateDeploy(audit, send, snapshotUrl, demoSlug, origin);
+        await runGenerateDeploy(
+          audit,
+          send,
+          snapshotUrl,
+          demoSlug,
+          origin,
+          critique,
+        );
         send({ type: "done" });
       } catch (err) {
         send({

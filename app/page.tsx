@@ -52,6 +52,10 @@ export default function Page() {
   const [providerResults, setProviderResults] = useState<
     { provider: string; ms: number; won: boolean }[]
   >([]);
+  const [critique, setCritique] = useState<{
+    confidence: number;
+    adjustments: string[];
+  } | null>(null);
 
   const demos = getDemoBusinesses();
 
@@ -70,6 +74,7 @@ export default function Page() {
     setSeoGap(null);
     setLighthouse(null);
     setProviderResults([]);
+    setCritique(null);
   }
 
   function fetchSeoGap(audit: SiteAudit) {
@@ -107,6 +112,12 @@ export default function Page() {
     if (event.type === "audit") {
       setAudit(event.data);
       fetchSeoGap(event.data);
+    }
+    if (event.type === "critique") {
+      setCritique({
+        confidence: event.confidence,
+        adjustments: event.adjustments,
+      });
     }
     if (event.type === "snapshot") setOriginalUrl(event.data.url);
     if (event.type === "deploy") setDeployUrl(event.data.url);
@@ -322,7 +333,18 @@ export default function Page() {
           />
         )}
 
-        {audit && <ScoreCard audit={audit} />}
+        {audit && (
+          <div className="space-y-3">
+            {critique && (
+              <div className="flex justify-center">
+                <span className="rounded-full border border-neon-cyan/40 bg-neon-cyan/10 px-4 py-1.5 font-display text-xs uppercase tracking-wider text-neon-cyan">
+                  Audit confidence: {critique.confidence}%
+                </span>
+              </div>
+            )}
+            <ScoreCard audit={audit} />
+          </div>
+        )}
 
         {lighthouse && audit && (
           <LighthousePanel

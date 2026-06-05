@@ -195,9 +195,30 @@ export function AgentGraph({ agents, handoffs, verdict }: Props) {
 
       {verdict && (
         <div className="mt-3 rounded-xl border border-[#ff6b35]/50 bg-[#ff6b35]/10 px-4 py-3 font-display text-xs uppercase tracking-wide text-[#ff6b35] md:text-sm">
-          🏆 Critic chose {verdict.accepted} · rejected{" "}
-          {verdict.rejected.length > 0 ? verdict.rejected.join(", ") : "none"} ·{" "}
-          {verdict.reason}
+          {(() => {
+            const confidenceMatch = verdict.accepted.match(
+              /^confidence\s+(\d+)%$/i,
+            );
+            if (confidenceMatch) {
+              return (
+                <>
+                  <div>Audit confidence: {confidenceMatch[1]}%</div>
+                  <div className="mt-1 normal-case tracking-normal">
+                    {verdict.reason}
+                  </div>
+                </>
+              );
+            }
+            return (
+              <>
+                🏆 Critic chose {verdict.accepted} · rejected{" "}
+                {verdict.rejected.length > 0
+                  ? verdict.rejected.join(", ")
+                  : "none"}{" "}
+                · {verdict.reason}
+              </>
+            );
+          })()}
         </div>
       )}
     </div>

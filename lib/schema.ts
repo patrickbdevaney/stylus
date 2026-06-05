@@ -115,6 +115,7 @@ export type StreamEvent =
   | { type: "deploy"; data: DeployResult }
   | { type: "shots"; beforeUrl: string | null; afterUrl: string | null }
   | { type: "lighthouse"; data: LighthouseDelta }
+  | { type: "critique"; confidence: number; adjustments: string[] }
   | { type: "variant_progress"; message: string }
   | {
       type: "provider_result";
