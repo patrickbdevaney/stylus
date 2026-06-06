@@ -195,6 +195,7 @@ export const HeroTypeSchema = z.enum([
   "fullbleed",
   "statement",
 ]);
+export type HeroType = z.infer<typeof HeroTypeSchema>;
 
 export const ServicesTypeSchema = z.enum([
   "grid",
@@ -202,18 +203,21 @@ export const ServicesTypeSchema = z.enum([
   "mosaic",
   "stats",
 ]);
+export type ServicesType = z.infer<typeof ServicesTypeSchema>;
 
 export const ContactTypeSchema = z.enum([
   "minimal",
   "card",
   "map-forward",
 ]);
+export type ContactType = z.infer<typeof ContactTypeSchema>;
 
 export const NavTypeSchema = z.enum([
   "minimal",
   "sticky-cta",
   "logo-centered",
 ]);
+export type NavType = z.infer<typeof NavTypeSchema>;
 
 export const SpacingScaleSchema = z.enum([
   "generous",
