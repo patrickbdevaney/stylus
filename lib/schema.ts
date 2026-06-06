@@ -175,6 +175,31 @@ export const LandscapeAnalysisSchema = z.object({
 export type ColorTendency = z.infer<typeof ColorTendencySchema>;
 export type LandscapeAnalysis = z.infer<typeof LandscapeAnalysisSchema>;
 
+export const LibraryChoiceSchema = z.object({
+  name: z.enum(["shadcn", "aceternity", "mantine", "heroui", "daisyui"]),
+  rationale: z.string(),
+});
+
+export const DesignBriefSchema = z.object({
+  archetype: z.enum([
+    "editorial",
+    "tech",
+    "warm-local",
+    "luxury",
+    "playful",
+    "generic",
+  ]),
+  voice: z.string(),
+  differentiationVector: z.string(),
+  primaryAction: z.string(),
+  recommendedLibraries: z.array(LibraryChoiceSchema).min(1).max(3),
+  motionLevel: z.enum(["none", "subtle", "rich"]),
+  typographyNote: z.string(),
+  colorNote: z.string(),
+});
+
+export type DesignBrief = z.infer<typeof DesignBriefSchema>;
+
 export type EnrichmentContext = {
   wikipediaExcerpt: string | null;
   googleReviewCount: number | null;
@@ -227,6 +252,7 @@ export type StreamEvent =
     }
   | { type: "brand_tokens"; data: BrandTokens }
   | { type: "landscape"; data: LandscapeAnalysis }
+  | { type: "design_brief"; data: DesignBrief }
   | { type: "done" }
   | { type: "error"; message: string };
 

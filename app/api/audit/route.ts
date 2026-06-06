@@ -8,6 +8,10 @@ import {
   defaultLandscape,
 } from "@/lib/agent/competitorLandscape";
 import { defaultBrandTokens } from "@/lib/agent/extractBrand";
+import {
+  fallbackDesignBrief,
+  generateDesignBrief,
+} from "@/lib/agent/designBrief";
 import { generateSiteWithVariants } from "@/lib/agent/generateSite";
 import { deploySite } from "@/lib/agent/deploySite";
 import { getDemo, findDemoByName, getDemoEntry, isDemoMode } from "@/lib/demo/seed";
@@ -345,6 +349,27 @@ async function runLiveAudit(
     message: `Overall score: ${audit.overallScore}/100`,
   });
   send({ type: "audit", data: audit });
+
+  send({
+    type: "reasoning",
+    delta:
+      "Generating design brief from brand tokens and competitor landscape…\n",
+  });
+
+  const brief = await generateDesignBrief(
+    audit,
+    enrichment.brandTokens ?? defaultBrandTokens(snapshot.url),
+    landscape,
+    { onReasoning: (d) => send({ type: "reasoning", delta: d }) },
+  ).catch(() =>
+    fallbackDesignBrief(
+      landscape.recommendedArchetype,
+      audit.brandTier ?? "generic",
+    ),
+  );
+
+  send({ type: "design_brief", data: brief });
+
   const critique = await emitCritique(send, audit, snapshot);
   return { audit, snapshotUrl: snapshot.url, critique };
 }
