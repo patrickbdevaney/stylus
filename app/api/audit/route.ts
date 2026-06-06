@@ -440,6 +440,11 @@ async function runGenerateDeploy(
           rationale: variant.differentiationRationale,
         },
       });
+      send({
+        type: "variant_files",
+        variantIndex: index,
+        files: variant.files,
+      });
     },
     enrichmentContext,
   );

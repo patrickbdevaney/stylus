@@ -273,6 +273,7 @@ export type StreamEvent =
         rationale: string;
       };
     }
+  | { type: "variant_files"; variantIndex: number; files: Record<string, string> }
   | { type: "done" }
   | { type: "error"; message: string };
 

@@ -85,6 +85,9 @@ export default function Page() {
       rationale: string;
     }[]
   >([]);
+  const [variantFiles, setVariantFiles] = useState<
+    Record<number, Record<string, string>>
+  >({});
   const [pipelineTotalMs, setPipelineTotalMs] = useState<number | null>(null);
   const pipelineStartRef = useRef<number | null>(null);
   const trace = useRef<TraceEntry[]>([]);
@@ -112,6 +115,7 @@ export default function Page() {
     setLandscape(null);
     setDesignBrief(null);
     setVariants([]);
+    setVariantFiles({});
     setPipelineTotalMs(null);
     pipelineStartRef.current = null;
     trace.current = [];
@@ -190,6 +194,12 @@ export default function Page() {
           },
         ].sort((a, b) => a.index - b.index),
       );
+    }
+    if (event.type === "variant_files") {
+      setVariantFiles((prev) => ({
+        ...prev,
+        [event.variantIndex]: event.files,
+      }));
     }
     if (event.type === "snapshot") setOriginalUrl(event.data.url);
     if (event.type === "deploy") setDeployUrl(event.data.url);
