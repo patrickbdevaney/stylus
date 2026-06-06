@@ -36,12 +36,20 @@ async function runBuilder(
 export async function buildVariants(
   audit: SiteAudit,
   tokens: BrandTokens,
-  brief: DesignBrief,
+  briefs: DesignBrief[],
   onVariantReady?: (index: number, variant: GeneratedVariant) => void,
   enrichment?: EnrichmentContext,
 ): Promise<GeneratedVariant[]> {
   const results = await Promise.allSettled(
-    BUILDERS.map(({ fn }) => runBuilder(fn, audit, tokens, brief, enrichment)),
+    BUILDERS.map(({ fn }, index) =>
+      runBuilder(
+        fn,
+        audit,
+        tokens,
+        briefs[index] ?? briefs[0],
+        enrichment,
+      ),
+    ),
   );
 
   const variants: GeneratedVariant[] = [];
@@ -59,7 +67,7 @@ export async function buildVariants(
     const fallback = buildFallbackVariant(
       audit,
       tokens,
-      brief,
+      briefs[index] ?? briefs[0],
       label,
       "Fallback to v1 template after variant builder failure.",
     );

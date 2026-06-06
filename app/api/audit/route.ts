@@ -16,8 +16,8 @@ import {
 } from "@/lib/agent/competitorLandscape";
 import { defaultBrandTokens } from "@/lib/agent/extractBrand";
 import {
-  fallbackDesignBrief,
-  generateDesignBrief,
+  fallbackDesignBriefs,
+  generateDesignBriefs,
 } from "@/lib/agent/designBrief";
 import { deterministicBrandTier } from "@/lib/agent/enrichSite";
 import { buildVariants } from "@/lib/generate/variants/index";
@@ -48,7 +48,7 @@ type AuditPipelineResult = {
   snapshotUrl: string | null;
   critique: { confidence: number; adjustments: string[] } | null;
   enrichment: EnrichmentContext;
-  designBrief: DesignBrief;
+  designBriefs: DesignBrief[];
   variants?: GeneratedVariant[];
 };
 
@@ -275,12 +275,12 @@ async function replayDemoTrace(
     brandTier: deterministicBrandTier(demo.snapshot),
     brandTokens: seededTokensForSlug(demoSlug),
   };
-  const designBrief = fallbackDesignBrief(
+  const designBriefs = fallbackDesignBriefs(
     demoArchetype(enrichment.brandTier),
     enrichment.brandTier,
   );
 
-  send({ type: "design_brief", data: designBrief });
+  send({ type: "design_briefs", data: designBriefs });
 
   send({
     type: "step",
@@ -292,7 +292,7 @@ async function replayDemoTrace(
   const variants = await buildVariants(
     demo.audit,
     enrichment.brandTokens ?? seededTokensForSlug(demoSlug),
-    designBrief,
+    designBriefs,
     (index, variant) => emitVariantEvents(send, index, variant),
     enrichment,
   );
@@ -309,7 +309,7 @@ async function replayDemoTrace(
     snapshotUrl: demo.snapshot.url,
     critique,
     enrichment,
-    designBrief,
+    designBriefs,
     variants,
   };
 }
@@ -438,19 +438,19 @@ async function runLiveAudit(
       "Generating design brief from brand tokens and competitor landscape…\n",
   });
 
-  const brief = await generateDesignBrief(
+  const briefs = await generateDesignBriefs(
     audit,
     enrichment.brandTokens ?? defaultBrandTokens(snapshot.url),
     landscape,
     { onReasoning: (d) => send({ type: "reasoning", delta: d }) },
   ).catch(() =>
-    fallbackDesignBrief(
+    fallbackDesignBriefs(
       landscape.recommendedArchetype,
       audit.brandTier ?? "generic",
     ),
   );
 
-  send({ type: "design_brief", data: brief });
+  send({ type: "design_briefs", data: briefs });
 
   const critique = await emitCritique(send, audit, snapshot);
   return {
@@ -458,7 +458,7 @@ async function runLiveAudit(
     snapshotUrl: snapshot.url,
     critique,
     enrichment,
-    designBrief: brief,
+    designBriefs: briefs,
   };
 }
 
@@ -468,7 +468,7 @@ async function runGenerateDeploy(
   opts: {
     snapshotUrl: string | null;
     enrichmentContext: EnrichmentContext;
-    designBrief: DesignBrief;
+    designBriefs: DesignBrief[];
     demoSlug?: string;
     origin?: string;
     critique?: { confidence: number; adjustments: string[] } | null;
@@ -478,7 +478,7 @@ async function runGenerateDeploy(
   const {
     snapshotUrl,
     enrichmentContext,
-    designBrief,
+    designBriefs,
     demoSlug,
     origin,
     prebuiltVariants,
@@ -497,7 +497,7 @@ async function runGenerateDeploy(
     variants = await buildVariants(
       audit,
       enrichmentContext.brandTokens ?? defaultBrandTokens(snapshotUrl),
-      designBrief,
+      designBriefs,
       (index, variant) => emitVariantEvents(send, index, variant),
       enrichmentContext,
     );
@@ -629,7 +629,7 @@ export async function POST(req: Request) {
         await runGenerateDeploy(pipeline.audit, send, {
           snapshotUrl: pipeline.snapshotUrl,
           enrichmentContext: pipeline.enrichment,
-          designBrief: pipeline.designBrief,
+          designBriefs: pipeline.designBriefs,
           demoSlug,
           origin,
           critique: pipeline.critique,

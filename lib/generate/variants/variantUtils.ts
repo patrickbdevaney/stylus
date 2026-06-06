@@ -4,7 +4,7 @@ import type { BrandTokens, DesignBrief, GeneratedVariant, SiteAudit } from "@/li
 import { renderFromAudit } from "@/lib/template/singlePage";
 
 export function primaryLibrary(brief: DesignBrief): string {
-  return brief.recommendedLibraries[0]?.name ?? "shadcn";
+  return brief.library;
 }
 
 export function buildVariantPage(

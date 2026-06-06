@@ -180,7 +180,7 @@ export default function Page() {
     }
     if (event.type === "brand_tokens") setBrandTokens(event.data);
     if (event.type === "landscape") setLandscape(event.data);
-    if (event.type === "design_brief") setDesignBrief(event.data);
+    if (event.type === "design_briefs") setDesignBrief(event.data[0] ?? null);
     if (event.type === "variant_ready") {
       setVariants((prev) =>
         [

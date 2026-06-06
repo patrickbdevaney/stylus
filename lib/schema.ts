@@ -189,7 +189,54 @@ export const LibraryChoiceSchema = z.object({
   rationale: z.string(),
 });
 
+export const HeroTypeSchema = z.enum([
+  "centered",
+  "split",
+  "fullbleed",
+  "statement",
+]);
+
+export const ServicesTypeSchema = z.enum([
+  "grid",
+  "strips",
+  "mosaic",
+  "stats",
+]);
+
+export const ContactTypeSchema = z.enum([
+  "minimal",
+  "card",
+  "map-forward",
+]);
+
+export const NavTypeSchema = z.enum([
+  "minimal",
+  "sticky-cta",
+  "logo-centered",
+]);
+
+export const SpacingScaleSchema = z.enum([
+  "generous",
+  "standard",
+  "dense",
+]);
+
+export const TypographyScaleSchema = z.enum([
+  "dramatic",
+  "editorial",
+  "functional",
+]);
+
 export const DesignBriefSchema = z.object({
+  heroType: HeroTypeSchema,
+  servicesType: ServicesTypeSchema,
+  contactType: ContactTypeSchema,
+  navType: NavTypeSchema,
+  spacingScale: SpacingScaleSchema,
+  typographyScale: TypographyScaleSchema,
+  library: z.enum(["shadcn", "aceternity", "daisyui"]),
+  colorMode: z.enum(["dark", "light"]),
+  motionLevel: z.enum(["none", "subtle", "rich"]),
   archetype: z.enum([
     "editorial",
     "tech",
@@ -201,13 +248,16 @@ export const DesignBriefSchema = z.object({
   voice: z.string(),
   differentiationVector: z.string(),
   primaryAction: z.string(),
-  recommendedLibraries: z.array(LibraryChoiceSchema).min(1).max(3),
-  motionLevel: z.enum(["none", "subtle", "rich"]),
   typographyNote: z.string(),
   colorNote: z.string(),
+  variantSlot: z.number().int().min(0).max(2),
+  variantLabel: z.string(),
 });
 
 export type DesignBrief = z.infer<typeof DesignBriefSchema>;
+
+export const DesignBriefArraySchema = z.array(DesignBriefSchema).length(3);
+export type DesignBriefArray = z.infer<typeof DesignBriefArraySchema>;
 
 export type EnrichmentContext = {
   wikipediaExcerpt: string | null;
@@ -261,7 +311,7 @@ export type StreamEvent =
     }
   | { type: "brand_tokens"; data: BrandTokens }
   | { type: "landscape"; data: LandscapeAnalysis }
-  | { type: "design_brief"; data: DesignBrief }
+  | { type: "design_briefs"; data: DesignBrief[] }
   | {
       type: "variant_ready";
       data: {
