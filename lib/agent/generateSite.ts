@@ -1,5 +1,6 @@
 import { generateBestVariant } from "@/lib/agent/generateVariants";
 import type { GeneratedCopy } from "@/lib/agent/generateCopy";
+import { tokensFromAudit, tokensToW3C } from "@/lib/generate/tokens";
 import type { GeneratedSite, SiteAudit } from "@/lib/schema";
 import {
   fillTemplateFromAudit,
@@ -318,9 +319,28 @@ async function emitHeroTokens(
   }
 }
 
+function wrapGeneratedSite(
+  audit: SiteAudit,
+  previewHtml: string,
+  extras?: Partial<GeneratedSite>,
+): GeneratedSite {
+  const tokens = tokensFromAudit(audit);
+  return {
+    files: { "preview.html": previewHtml, ...(extras?.files ?? {}) },
+    library: extras?.library ?? "shadcn",
+    archetype: audit.brandTier ?? extras?.archetype ?? "generic",
+    businessName: audit.businessName,
+    variantLabel: extras?.variantLabel ?? "Classic",
+    differentiationRationale:
+      extras?.differentiationRationale ?? "Deterministic v1 template fill",
+    tokensJson: extras?.tokensJson ?? tokensToW3C(tokens),
+    previewHtml,
+    ...extras,
+  };
+}
+
 export async function generateSite(audit: SiteAudit): Promise<GeneratedSite> {
-  const html = renderFromAudit(audit);
-  return { html, businessName: audit.businessName };
+  return wrapGeneratedSite(audit, renderFromAudit(audit));
 }
 
 export async function generateSiteFromOpts(opts?: {
@@ -329,7 +349,33 @@ export async function generateSiteFromOpts(opts?: {
 }): Promise<GeneratedSite> {
   if (opts?.audit) return generateSite(opts.audit);
   const businessName = opts?.businessName ?? "Stylus Demo";
-  return { html: renderEmptyShell(businessName), businessName };
+  const previewHtml = renderEmptyShell(businessName);
+  return wrapGeneratedSite(
+    {
+      businessName,
+      category: "Local Business",
+      overallScore: 0,
+      dimensions: {
+        clarity: { score: 0, reason: "Shell" },
+        trust: { score: 0, reason: "Shell" },
+        mobile: { score: 0, reason: "Shell" },
+        speed: { score: 0, reason: "Shell" },
+        conversion: { score: 0, reason: "Shell" },
+        localSeo: { score: 0, reason: "Shell" },
+      },
+      topFixes: ["Add content"],
+      brand: {
+        tagline: businessName,
+        phone: null,
+        address: null,
+        email: null,
+        palette: ["#ff2d95", "#00f0ff"],
+        services: [],
+      },
+    },
+    previewHtml,
+    { variantLabel: "Empty Shell" },
+  );
 }
 
 export async function generateSiteWithLiveCopy(
@@ -351,7 +397,10 @@ export async function generateSiteWithLiveCopy(
   callbacks?.onCopyDone?.(copy.provider, copy.ms);
 
   const html = renderWithCopy(audit, copy);
-  return { html, businessName: audit.businessName };
+  return wrapGeneratedSite(audit, html, {
+    variantLabel: "Live Copy",
+    differentiationRationale: `Copy from ${copy.provider}`,
+  });
 }
 
 export type AgentTrace = {
@@ -448,12 +497,10 @@ export async function generateSiteWithVariants(
     onVariantWinner?.(variant.variantIndex, score, variant.raceDurationMs);
     await emitHeroTokens(variant.copy.hero, variant.copy.provider, onToken, 15);
 
-    return {
-      html: variant.html,
-      businessName: audit.businessName,
-      copyProvider: variant.copy.provider,
-      copyMs: variant.copy.ms,
-    };
+    return wrapGeneratedSite(audit, variant.html, {
+      variantLabel: `Variant ${variant.variantIndex + 1}`,
+      differentiationRationale: `Winning variant from ${variant.copy.provider}`,
+    });
   } catch {
     return generateSiteWithLiveCopy(audit, liveCopyCallbacks);
   }

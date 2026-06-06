@@ -451,7 +451,7 @@ async function runGenerateDeploy(
     type: "step",
     step: "generate",
     status: "done",
-    message: `Template filled — ${(generated.html.length / 1024).toFixed(1)} KB`,
+    message: `Template filled — ${(generated.previewHtml.length / 1024).toFixed(1)} KB`,
   });
 
   send({
@@ -509,7 +509,7 @@ async function runGenerateDeploy(
     }
 
     if (origin) {
-      const id = await storePreviewHtml(generated.html);
+      const id = await storePreviewHtml(generated.previewHtml);
       const url = previewUrl(id, origin);
       send({
         type: "reasoning",

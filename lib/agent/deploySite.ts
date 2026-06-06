@@ -56,7 +56,7 @@ export async function deploySite(g: GeneratedSite): Promise<DeployResult> {
   const projectName = `stylus-${slug}-${Date.now().toString(36)}`;
   const workDir = await mkdtemp(join(tmpdir(), "stylus-deploy-"));
 
-  await writePrebuiltOutput(workDir, g.html);
+  await writePrebuiltOutput(workDir, g.previewHtml);
 
   const args = [
     "deploy",

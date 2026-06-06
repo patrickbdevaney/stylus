@@ -99,7 +99,7 @@ async function runRedevelopPipeline(
     return { audit, deployUrl: deploy.url };
   } catch (deployErr) {
     if (origin) {
-      const id = await storePreviewHtml(generated.html);
+      const id = await storePreviewHtml(generated.previewHtml);
       return { audit, deployUrl: previewUrl(id, origin) };
     }
     throw deployErr;

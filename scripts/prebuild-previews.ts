@@ -17,10 +17,10 @@ async function main(): Promise<void> {
       console.warn(`skip ${slug}: no demo entry`);
       continue;
     }
-    const { html } = await generateSite(demo.audit);
+    const { previewHtml } = await generateSite(demo.audit);
     const outPath = join(outDir, `${slug}.html`);
-    writeFileSync(outPath, html, "utf8");
-    console.log(`wrote ${outPath} (${html.length} bytes)`);
+    writeFileSync(outPath, previewHtml, "utf8");
+    console.log(`wrote ${outPath} (${previewHtml.length} bytes)`);
   }
 }
 

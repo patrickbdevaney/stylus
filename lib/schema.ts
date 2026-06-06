@@ -54,13 +54,22 @@ export const ResolveResultSchema = z.object({
 });
 export type ResolveResult = z.infer<typeof ResolveResultSchema>;
 
-export const GeneratedSiteSchema = z.object({
-  html: z.string(),
+export const GeneratedVariantSchema = z.object({
+  files: z.record(z.string(), z.string()),
+  library: z.string(),
+  archetype: z.string(),
   businessName: z.string(),
-  copyProvider: z.string().optional(),
-  copyMs: z.number().int().nonnegative().optional(),
+  variantLabel: z.string(),
+  differentiationRationale: z.string(),
+  tokensJson: z.string(),
+  previewHtml: z.string(),
 });
-export type GeneratedSite = z.infer<typeof GeneratedSiteSchema>;
+
+export type GeneratedVariant = z.infer<typeof GeneratedVariantSchema>;
+
+/** @deprecated use GeneratedVariantSchema */
+export const GeneratedSiteSchema = GeneratedVariantSchema;
+export type GeneratedSite = GeneratedVariant;
 
 export const DeployResultSchema = z.object({
   url: z.string().url(),
@@ -253,6 +262,17 @@ export type StreamEvent =
   | { type: "brand_tokens"; data: BrandTokens }
   | { type: "landscape"; data: LandscapeAnalysis }
   | { type: "design_brief"; data: DesignBrief }
+  | {
+      type: "variant_ready";
+      data: {
+        variantIndex: number;
+        label: string;
+        archetype: string;
+        library: string;
+        previewHtml: string;
+        rationale: string;
+      };
+    }
   | { type: "done" }
   | { type: "error"; message: string };
 

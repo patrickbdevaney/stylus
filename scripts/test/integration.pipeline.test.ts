@@ -69,17 +69,17 @@ test("generateSite() html contract and escapeHtml for special chars", async () =
     businessName: `Tom & Jerry's "Cafe"`,
     brand: { ...base.brand, tagline: 'Best "beans" & brew' },
   };
-  const { html, businessName } = await generateSite(audit);
-  assert.ok(html.includes("<!DOCTYPE html>"), "doctype");
-  assert.ok(html.includes("<h1>Tom &amp; Jerry"), "escaped ampersand in h1");
-  assert.ok(html.includes("&quot;Cafe&quot;</h1>"), "escaped quotes in h1");
-  const h1Match = html.match(/<h1>[^<]*<\/h1>/);
+  const { previewHtml, businessName } = await generateSite(audit);
+  assert.ok(previewHtml.includes("<!DOCTYPE html>"), "doctype");
+  assert.ok(previewHtml.includes("<h1>Tom &amp; Jerry"), "escaped ampersand in h1");
+  assert.ok(previewHtml.includes("&quot;Cafe&quot;</h1>"), "escaped quotes in h1");
+  const h1Match = previewHtml.match(/<h1>[^<]*<\/h1>/);
   assert.ok(h1Match !== null, "h1 present");
   assert.ok(!h1Match![0].includes("Tom & Jerry"), "raw ampersand absent in h1");
-  assert.ok(html.includes('type="application/ld+json"'), "json-ld script");
+  assert.ok(previewHtml.includes('type="application/ld+json"'), "json-ld script");
   assert.equal(businessName, audit.businessName, "businessName echo");
   if (audit.brand.phone) {
-    assert.ok(html.includes("tel:"), "tel link when phone present");
+    assert.ok(previewHtml.includes("tel:"), "tel link when phone present");
   }
 });
 
@@ -97,7 +97,7 @@ test("all 5 demo fixtures: schema + generateSite html", async () => {
       `${slug} audit schema`,
     );
     const generated = await generateSite(demo.audit);
-    assert.ok(generated.html.length > 500, `${slug} html length`);
+    assert.ok(generated.previewHtml.length > 500, `${slug} html length`);
   }
 });
 
