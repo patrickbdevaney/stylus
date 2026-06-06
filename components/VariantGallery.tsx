@@ -12,6 +12,10 @@ type VariantEntry = {
   library: string;
   previewHtml: string;
   rationale: string;
+  heroType: string;
+  servicesType: string;
+  spacingScale: string;
+  motionLevel: string;
 };
 
 type Props = {
@@ -25,6 +29,30 @@ type Props = {
 
 function thumShot(pageUrl: string): string {
   return `https://image.thum.io/get/width/600/crop/338/${pageUrl}`;
+}
+
+function axisPills(variant: VariantEntry): Array<{ key: string; label: string }> {
+  return [
+    { key: "hero", label: `${variant.heroType} hero` },
+    { key: "services", label: variant.servicesType },
+    { key: "spacing", label: variant.spacingScale },
+    { key: "motion", label: variant.motionLevel },
+  ];
+}
+
+function AxisBadgeRow({ variant }: { variant: VariantEntry }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {axisPills(variant).map((pill) => (
+        <span
+          key={pill.key}
+          className="stage-label rounded-full border border-neon-purple/20 bg-neon-purple/10 px-2 py-0.5 text-[10px] normal-case tracking-normal text-neon-cyan"
+        >
+          {pill.label}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 export function VariantGallery({
@@ -122,18 +150,21 @@ export function VariantGallery({
               key={variant.index}
               type="button"
               onClick={() => setSelectedIndex(variant.index)}
-              className={`flex items-center gap-2 border-b-2 px-4 py-2 transition ${
+              className={`flex flex-col items-start border-b-2 px-4 py-2 transition ${
                 active
                   ? "border-neon-pink text-white"
                   : "border-transparent text-white/55 hover:text-white/80"
               }`}
             >
-              <span className="font-display text-sm uppercase tracking-wide">
-                {variant.label}
+              <span className="flex items-center gap-2">
+                <span className="font-display text-sm uppercase tracking-wide">
+                  {variant.label}
+                </span>
+                <span className="rounded-full border border-neon-cyan/35 bg-neon-cyan/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-neon-cyan">
+                  {variant.library}
+                </span>
               </span>
-              <span className="rounded-full border border-neon-cyan/35 bg-neon-cyan/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-neon-cyan">
-                {variant.library}
-              </span>
+              <AxisBadgeRow variant={variant} />
             </button>
           );
         })}
@@ -158,7 +189,7 @@ export function VariantGallery({
           )}
         </div>
       ) : (
-        <div className="mb-8 overflow-hidden rounded-xl border border-neon-cyan/40 bg-night/80">
+        <div className="mb-4 overflow-hidden rounded-xl border border-neon-cyan/40 bg-night/80">
           <iframe
             title={`${selected.label} preview`}
             srcDoc={selected.previewHtml}
@@ -168,7 +199,9 @@ export function VariantGallery({
         </div>
       )}
 
-      <div className="mb-8">
+      <AxisBadgeRow variant={selected} />
+
+      <div className="mb-8 mt-4">
         <BundleDownloadCard
           variant={selected}
           files={files}
@@ -186,13 +219,16 @@ export function VariantGallery({
               onClick={() => setSelectedIndex(variant.index)}
               className="group overflow-hidden rounded-xl border border-white/10 bg-night/50 text-left transition hover:border-neon-cyan/40"
             >
-              <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
-                <span className="font-display text-sm uppercase tracking-wide text-white/80 group-hover:text-neon-cyan">
-                  {variant.label}
-                </span>
-                <span className="text-[10px] uppercase tracking-wider text-neon-purple">
-                  {variant.archetype}
-                </span>
+              <div className="border-b border-white/10 px-4 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-display text-sm uppercase tracking-wide text-white/80 group-hover:text-neon-cyan">
+                    {variant.label}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wider text-neon-purple">
+                    {variant.archetype}
+                  </span>
+                </div>
+                <AxisBadgeRow variant={variant} />
               </div>
               <iframe
                 title={`${variant.label} mini preview`}

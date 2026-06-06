@@ -6,7 +6,7 @@ const RADIUS_KEYS = ["sm", "md", "lg", "xl", "2xl", "full"] as const;
 const SHADOW_KEYS = ["sm", "md", "lg"] as const;
 
 const DEFAULT_SPACING = [4, 8, 12, 16, 24, 32, 48, 64];
-const DEFAULT_RADII = [4, 8, 12, 16, 24, 9999];
+const DEMO_RADII = [4, 8, 12, 16];
 
 function baseTokens(
   colors: BrandColor[],
@@ -17,7 +17,7 @@ function baseTokens(
     colors,
     fonts,
     spacing: DEFAULT_SPACING,
-    radii: DEFAULT_RADII,
+    radii: DEMO_RADII,
     shadows: [],
     motion: { hasParallax: false, hasScrollAnimation: false },
     logo: null,
@@ -25,6 +25,22 @@ function baseTokens(
     sourceUrl,
     degraded: false,
   };
+}
+
+function roleColors(
+  primary: string,
+  secondary: string,
+  accent: string,
+  background: string,
+  text: string,
+): BrandColor[] {
+  return [
+    { role: "primary", value: primary, confidence: 1 },
+    { role: "secondary", value: secondary, confidence: 1 },
+    { role: "accent", value: accent, confidence: 1 },
+    { role: "background", value: background, confidence: 1 },
+    { role: "text", value: text, confidence: 1 },
+  ];
 }
 
 function paletteToColors(palette: string[]): BrandColor[] {
@@ -56,62 +72,53 @@ export function tokensFromAudit(audit: SiteAudit): BrandTokens {
 
 export function seededTokensForSlug(slug: string): BrandTokens {
   const demo = getDemo(slug);
-  const palette = demo?.audit.brand.palette ?? [
-    "#ff2d95",
-    "#00f0ff",
-    "#9d4edd",
-    "#0a0a12",
-  ];
+  const sourceUrl = demo?.snapshot.url ?? null;
+  const sharedBackground = "#0a0a0f";
+  const sharedText = "#f0f0f0";
 
-  const slugFonts: Record<string, BrandTokens["fonts"]> = {
-    versailles: [
-      { role: "display", family: "Playfair Display", weights: [400, 700] },
-      { role: "body", family: "Inter", weights: [400, 500, 600] },
-    ],
-    "joes-stone-crab": [
-      { role: "display", family: "Georgia", weights: [400, 700] },
-      { role: "body", family: "Inter", weights: [400, 500, 600, 700] },
-    ],
-    "panther-coffee": [
-      { role: "display", family: "Inter", weights: [600, 700] },
-      { role: "body", family: "Inter", weights: [400, 500] },
-      { role: "mono", family: "JetBrains Mono", weights: [400, 700] },
-    ],
-    "gramps-bar": [
-      { role: "display", family: "Inter", weights: [700, 800] },
-      { role: "body", family: "Inter", weights: [400, 500, 600] },
-    ],
-    "robert-is-here": [
-      { role: "display", family: "Georgia", weights: [400, 700] },
-      { role: "body", family: "Georgia", weights: [400, 600] },
-    ],
+  const slugConfig: Record<
+    string,
+    { colors: BrandColor[]; fonts: BrandTokens["fonts"] }
+  > = {
+    versailles: {
+      colors: roleColors("#ff2d95", "#00f0ff", "#9d4edd", sharedBackground, sharedText),
+      fonts: [
+        { role: "display", family: "Playfair Display", weights: [400, 700] },
+        { role: "body", family: "Inter", weights: [400, 500, 600] },
+      ],
+    },
+    "joes-stone-crab": {
+      colors: roleColors("#00f0ff", "#ff6b35", "#9d4edd", sharedBackground, sharedText),
+      fonts: [
+        { role: "display", family: "Georgia", weights: [400, 700] },
+        { role: "body", family: "Inter", weights: [400, 500, 600, 700] },
+      ],
+    },
+    "panther-coffee": {
+      colors: roleColors("#9d4edd", "#00f0ff", "#ff2d95", sharedBackground, sharedText),
+      fonts: [
+        { role: "display", family: "Inter", weights: [600, 700] },
+        { role: "body", family: "Inter", weights: [400, 500] },
+      ],
+    },
+    "gramps-bar": {
+      colors: roleColors("#ff2d95", "#9d4edd", "#00f0ff", sharedBackground, sharedText),
+      fonts: [
+        { role: "display", family: "Courier New", weights: [400, 700] },
+        { role: "body", family: "Inter", weights: [400, 500, 600] },
+      ],
+    },
+    "robert-is-here": {
+      colors: roleColors("#ff6b35", "#00f0ff", "#9d4edd", sharedBackground, sharedText),
+      fonts: [
+        { role: "display", family: "Georgia", weights: [400, 700] },
+        { role: "body", family: "Inter", weights: [400, 500, 600] },
+      ],
+    },
   };
 
-  const fonts = slugFonts[slug] ?? slugFonts.versailles;
-  const colors = paletteToColors(palette);
-
-  if (slug === "versailles") {
-    colors[0] = { role: "primary", value: "#c8102e", confidence: 1 };
-    colors[1] = { role: "secondary", value: "#d4af37", confidence: 1 };
-  }
-  if (slug === "joes-stone-crab") {
-    colors[0] = { role: "primary", value: palette[0] ?? "#0077b6", confidence: 1 };
-    colors[1] = { role: "secondary", value: palette[1] ?? "#ff6b35", confidence: 1 };
-  }
-  if (slug === "panther-coffee") {
-    colors[0] = { role: "primary", value: palette[0] ?? "#9d4edd", confidence: 1 };
-    colors[1] = { role: "secondary", value: palette[1] ?? "#00f0ff", confidence: 1 };
-  }
-  if (slug === "gramps-bar") {
-    colors[0] = { role: "primary", value: palette[0] ?? "#ff2d95", confidence: 1 };
-    colors[1] = { role: "secondary", value: palette[1] ?? "#9d4edd", confidence: 1 };
-  }
-  if (slug === "robert-is-here") {
-    colors[0] = { role: "primary", value: palette[0] ?? "#ff6b35", confidence: 1 };
-    colors[1] = { role: "secondary", value: "#2d6a4f", confidence: 1 };
-  }
-
-  return baseTokens(colors, fonts, demo?.snapshot.url ?? null);
+  const config = slugConfig[slug] ?? slugConfig.versailles;
+  return baseTokens(config.colors, config.fonts, sourceUrl);
 }
 
 function spacingMap(tokens: BrandTokens): Record<string, string> {

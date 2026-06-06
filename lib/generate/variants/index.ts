@@ -37,7 +37,11 @@ export async function buildVariants(
   audit: SiteAudit,
   tokens: BrandTokens,
   briefs: DesignBrief[],
-  onVariantReady?: (index: number, variant: GeneratedVariant) => void,
+  onVariantReady?: (
+    index: number,
+    variant: GeneratedVariant,
+    brief: DesignBrief,
+  ) => void,
   enrichment?: EnrichmentContext,
 ): Promise<GeneratedVariant[]> {
   const results = await Promise.allSettled(
@@ -57,9 +61,10 @@ export async function buildVariants(
   for (let index = 0; index < BUILDERS.length; index++) {
     const result = results[index];
     const label = BUILDERS[index].label;
+    const brief = briefs[index] ?? briefs[0];
 
     if (result.status === "fulfilled") {
-      onVariantReady?.(index, result.value);
+      onVariantReady?.(index, result.value, brief);
       variants.push(result.value);
       continue;
     }
@@ -67,11 +72,11 @@ export async function buildVariants(
     const fallback = buildFallbackVariant(
       audit,
       tokens,
-      briefs[index] ?? briefs[0],
+      brief,
       label,
       "Fallback to v1 template after variant builder failure.",
     );
-    onVariantReady?.(index, fallback);
+    onVariantReady?.(index, fallback, brief);
     variants.push(fallback);
   }
 

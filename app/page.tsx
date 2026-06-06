@@ -84,6 +84,10 @@ export default function Page() {
       library: string;
       previewHtml: string;
       rationale: string;
+      heroType: string;
+      servicesType: string;
+      spacingScale: string;
+      motionLevel: string;
     }[]
   >([]);
   const [variantFiles, setVariantFiles] = useState<
@@ -192,6 +196,10 @@ export default function Page() {
             library: event.data.library,
             previewHtml: event.data.previewHtml,
             rationale: event.data.rationale,
+            heroType: event.data.heroType,
+            servicesType: event.data.servicesType,
+            spacingScale: event.data.spacingScale,
+            motionLevel: event.data.motionLevel,
           },
         ].sort((a, b) => a.index - b.index),
       );

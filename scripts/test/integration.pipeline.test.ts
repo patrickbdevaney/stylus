@@ -10,6 +10,9 @@ import {
   getDemoBusinesses,
   findDemoByName,
 } from "../../lib/demo/seed";
+import { fallbackDesignBriefs } from "../../lib/agent/designBrief";
+import { buildVariants } from "../../lib/generate/variants";
+import { seededTokensForSlug } from "../../lib/generate/tokens";
 import { SiteAuditSchema, SiteSnapshotSchema } from "../../lib/schema";
 import { test, assert } from "./assert";
 
@@ -106,4 +109,41 @@ test("findDemoByName matches Versailles Restaurant", () => {
   assert.ok(demo !== null, "demo found by name");
   if (!demo) return;
   assert.equal(demo.slug, "versailles", "versailles slug");
+});
+
+test("seededTokensForSlug returns valid BrandTokens for all demo slugs", () => {
+  for (const { slug } of getDemoBusinesses()) {
+    const tokens = seededTokensForSlug(slug);
+    assert.ok(tokens.colors.length >= 5, `${slug} color roles`);
+    assert.ok(tokens.fonts.length >= 2, `${slug} fonts`);
+    assert.equal(tokens.degraded, false, `${slug} not degraded`);
+  }
+});
+
+test("buildVariants with fallbackDesignBriefs produces 3 structurally distinct variants", async () => {
+  const demo = getDemo("versailles");
+  assert.ok(demo !== null, "versailles demo");
+  if (!demo) return;
+
+  const briefs = fallbackDesignBriefs("editorial", "iconic");
+  assert.equal(briefs.length, 3, "three briefs");
+
+  const tokens = seededTokensForSlug("versailles");
+  const variants = await buildVariants(demo.audit, tokens, briefs);
+
+  assert.equal(variants.length, 3, "three variants");
+  assert.ok(
+    variants[0].archetype !== variants[1].archetype,
+    "variant 0 vs 1 archetype differs",
+  );
+  assert.ok(
+    variants[1].archetype !== variants[2].archetype,
+    "variant 1 vs 2 archetype differs",
+  );
+  assert.ok(
+    variants[0].archetype !== variants[2].archetype,
+    "variant 0 vs 2 archetype differs",
+  );
+  assert.ok(briefs[0].heroType !== briefs[1].heroType, "hero axis differs");
+  assert.ok(briefs[1].motionLevel !== briefs[0].motionLevel, "motion axis differs");
 });

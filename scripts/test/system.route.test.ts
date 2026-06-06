@@ -91,6 +91,18 @@ test("POST demoSlug versailles: SSE contract and pipeline order", async () => {
   }
   assert.inRange(auditEv.data.overallScore, 0, 100, "audit overallScore");
 
+  const briefsEv = events.find((e) => e.type === "design_briefs");
+  if (briefsEv?.type !== "design_briefs") {
+    throw new Error("missing design_briefs event");
+  }
+  assert.equal(briefsEv.data.length, 3, "three design briefs");
+
+  const variantReady = events.filter((e) => e.type === "variant_ready");
+  assert.equal(variantReady.length, 3, "three variant_ready events");
+  if (variantReady[0]?.type === "variant_ready") {
+    assert.ok(variantReady[0].data.heroType.length > 0, "variant axis heroType");
+  }
+
   const deployEv = events.find((e) => e.type === "deploy");
   if (deployEv?.type !== "deploy") {
     throw new Error("missing deploy event");

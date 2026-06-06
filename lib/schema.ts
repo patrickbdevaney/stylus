@@ -325,6 +325,10 @@ export type StreamEvent =
         library: string;
         previewHtml: string;
         rationale: string;
+        heroType: string;
+        servicesType: string;
+        spacingScale: string;
+        motionLevel: string;
       };
     }
   | { type: "variant_files"; variantIndex: number; files: Record<string, string> }

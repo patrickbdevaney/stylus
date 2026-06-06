@@ -52,18 +52,11 @@ type AuditPipelineResult = {
   variants?: GeneratedVariant[];
 };
 
-function demoArchetype(
-  tier: EnrichmentContext["brandTier"],
-): DesignBrief["archetype"] {
-  if (tier === "iconic") return "editorial";
-  if (tier === "established") return "tech";
-  return "warm-local";
-}
-
 function emitVariantEvents(
   send: (event: StreamEvent) => void,
   index: number,
   variant: GeneratedVariant,
+  brief: DesignBrief,
 ): void {
   send({
     type: "variant_ready",
@@ -74,6 +67,10 @@ function emitVariantEvents(
       library: variant.library,
       previewHtml: variant.previewHtml,
       rationale: variant.differentiationRationale,
+      heroType: brief.heroType,
+      servicesType: brief.servicesType,
+      spacingScale: brief.spacingScale,
+      motionLevel: brief.motionLevel,
     },
   });
   send({
@@ -266,6 +263,7 @@ async function replayDemoTrace(
   });
   send({ type: "audit", data: demo.audit });
   const critique = await emitCritique(send, demo.audit, demo.snapshot, demoSlug);
+  const seededTokens = seededTokensForSlug(demoSlug);
   const enrichment: EnrichmentContext = {
     wikipediaExcerpt: null,
     googleReviewCount: null,
@@ -273,14 +271,15 @@ async function replayDemoTrace(
     yearsOperating: null,
     pressSnippets: [],
     brandTier: deterministicBrandTier(demo.snapshot),
-    brandTokens: seededTokensForSlug(demoSlug),
+    brandTokens: seededTokens,
   };
-  const designBriefs = fallbackDesignBriefs(
-    demoArchetype(enrichment.brandTier),
-    enrichment.brandTier,
+  const seededLandscape = defaultLandscape([]);
+  const demoBriefs = fallbackDesignBriefs(
+    seededLandscape.recommendedArchetype,
+    demo.audit.brandTier ?? "generic",
   );
 
-  send({ type: "design_briefs", data: designBriefs });
+  send({ type: "design_briefs", data: demoBriefs });
 
   send({
     type: "step",
@@ -289,11 +288,11 @@ async function replayDemoTrace(
     message: "Building 3 brand-faithful variants...",
   });
 
-  const variants = await buildVariants(
+  const demoVariants = await buildVariants(
     demo.audit,
-    enrichment.brandTokens ?? seededTokensForSlug(demoSlug),
-    designBriefs,
-    (index, variant) => emitVariantEvents(send, index, variant),
+    seededTokens,
+    demoBriefs,
+    (index, variant, brief) => emitVariantEvents(send, index, variant, brief),
     enrichment,
   );
 
@@ -301,7 +300,7 @@ async function replayDemoTrace(
     type: "step",
     step: "generate",
     status: "done",
-    message: `${variants.length} variants ready (${variants.map((variant) => variant.variantLabel).join(", ")})`,
+    message: `${demoVariants.length} variants ready (${demoVariants.map((variant) => variant.variantLabel).join(", ")})`,
   });
 
   return {
@@ -309,8 +308,8 @@ async function replayDemoTrace(
     snapshotUrl: demo.snapshot.url,
     critique,
     enrichment,
-    designBriefs,
-    variants,
+    designBriefs: demoBriefs,
+    variants: demoVariants,
   };
 }
 
@@ -498,7 +497,7 @@ async function runGenerateDeploy(
       audit,
       enrichmentContext.brandTokens ?? defaultBrandTokens(snapshotUrl),
       designBriefs,
-      (index, variant) => emitVariantEvents(send, index, variant),
+      (index, variant, brief) => emitVariantEvents(send, index, variant, brief),
       enrichmentContext,
     );
 
