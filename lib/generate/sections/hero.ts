@@ -41,7 +41,7 @@ function heroCtaTsx(content: SectionContent, tok: SectionTokens): string {
     return `<a href="#contact" className="btn btn-primary mt-6">{${action}}</a>`;
   }
   if (tok.library === "aceternity") {
-    return `<MovingBorderButton as="a" href="#contact" className="mt-6">
+    return `<MovingBorderButton href="#contact" className="mt-6">
         {${action}}
       </MovingBorderButton>`;
   }
