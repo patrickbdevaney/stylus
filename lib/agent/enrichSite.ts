@@ -1,4 +1,5 @@
 import { load } from "cheerio";
+import { defaultBrandTokens, extractBrand } from "@/lib/agent/extractBrand";
 import type { EnrichmentContext, SiteSnapshot } from "@/lib/schema";
 
 const SEARCH_TIMEOUT_MS = 8000;
@@ -56,6 +57,7 @@ function genericContext(snapshot?: SiteSnapshot): EnrichmentContext {
     yearsOperating: null,
     pressSnippets: [],
     brandTier: snapshot ? deterministicBrandTier(snapshot) : "generic",
+    brandTokens: defaultBrandTokens(snapshot?.url ?? null),
   };
 }
 
@@ -208,6 +210,10 @@ export async function enrichSite(
       `Enrichment complete — brand tier: ${brandTier}${yearsOperating ? `, ~${yearsOperating} years` : ""}`,
     );
 
+    const brandTokens = await extractBrand(snapshot, {
+      onProgress: (msg) => onProgress?.(`Brand tokens: ${msg}`),
+    });
+
     return {
       wikipediaExcerpt,
       googleReviewCount,
@@ -215,6 +221,7 @@ export async function enrichSite(
       yearsOperating,
       pressSnippets,
       brandTier,
+      brandTokens,
     };
   } catch {
     onProgress?.("Enrichment unavailable — continuing with generic brand tier.");

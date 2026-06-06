@@ -92,6 +92,50 @@ export type PipelineStep =
 
 import type { LighthouseDelta } from "@/lib/lighthouse";
 
+export const BrandColorSchema = z.object({
+  role: z.enum([
+    "primary",
+    "secondary",
+    "accent",
+    "background",
+    "text",
+    "border",
+    "unknown",
+  ]),
+  value: z.string(),
+  confidence: z.number().min(0).max(1),
+});
+
+export const BrandFontSchema = z.object({
+  role: z.enum(["display", "body", "mono", "accent", "unknown"]),
+  family: z.string(),
+  weights: z.array(z.number()),
+});
+
+export const BrandMotionSchema = z.object({
+  duration: z.string().optional(),
+  easing: z.string().optional(),
+  hasParallax: z.boolean(),
+  hasScrollAnimation: z.boolean(),
+});
+
+export const BrandTokensSchema = z.object({
+  colors: z.array(BrandColorSchema).min(1),
+  fonts: z.array(BrandFontSchema).min(1),
+  spacing: z.array(z.number()),
+  radii: z.array(z.number()),
+  shadows: z.array(z.string()),
+  motion: BrandMotionSchema.optional(),
+  logo: z.string().nullable(),
+  extractedAt: z.string(),
+  sourceUrl: z.string().nullable(),
+  degraded: z.boolean(),
+});
+
+export type BrandTokens = z.infer<typeof BrandTokensSchema>;
+export type BrandColor = z.infer<typeof BrandColorSchema>;
+export type BrandFont = z.infer<typeof BrandFontSchema>;
+
 export type EnrichmentContext = {
   wikipediaExcerpt: string | null;
   googleReviewCount: number | null;
@@ -99,6 +143,7 @@ export type EnrichmentContext = {
   yearsOperating: number | null;
   pressSnippets: string[];
   brandTier: "iconic" | "established" | "generic";
+  brandTokens?: BrandTokens;
 };
 
 export type StreamEvent =
@@ -141,6 +186,7 @@ export type StreamEvent =
       rejected: string[];
       reason: string;
     }
+  | { type: "brand_tokens"; data: BrandTokens }
   | { type: "done" }
   | { type: "error"; message: string };
 

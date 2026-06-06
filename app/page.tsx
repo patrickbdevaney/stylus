@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { SiteAudit, StreamEvent } from "@/lib/schema";
+import type { BrandTokens, SiteAudit, StreamEvent } from "@/lib/schema";
 import { getDemoBusinesses } from "@/lib/demo/seed";
 import {
   AuditStream,
@@ -66,6 +66,7 @@ export default function Page() {
     confidence: number;
     adjustments: string[];
   } | null>(null);
+  const [brandTokens, setBrandTokens] = useState<BrandTokens | null>(null);
   const [pipelineTotalMs, setPipelineTotalMs] = useState<number | null>(null);
   const pipelineStartRef = useRef<number | null>(null);
   const trace = useRef<TraceEntry[]>([]);
@@ -89,6 +90,7 @@ export default function Page() {
     setSeoValidation(null);
     setProviderResults([]);
     setCritique(null);
+    setBrandTokens(null);
     setPipelineTotalMs(null);
     pipelineStartRef.current = null;
     trace.current = [];
@@ -150,6 +152,7 @@ export default function Page() {
         adjustments: event.adjustments,
       });
     }
+    if (event.type === "brand_tokens") setBrandTokens(event.data);
     if (event.type === "snapshot") setOriginalUrl(event.data.url);
     if (event.type === "deploy") setDeployUrl(event.data.url);
     if (event.type === "shots") {

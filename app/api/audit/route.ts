@@ -282,6 +282,9 @@ async function runLiveAudit(
     status: "done",
     message: `Brand tier: ${enrichment.brandTier}`,
   });
+  if (enrichment.brandTokens) {
+    send({ type: "brand_tokens", data: enrichment.brandTokens });
+  }
 
   send({
     type: "step",
