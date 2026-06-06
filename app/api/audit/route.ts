@@ -1,4 +1,10 @@
-import type { StreamEvent, SiteAudit, SiteSnapshot } from "@/lib/schema";
+import type {
+  DesignBrief,
+  EnrichmentContext,
+  StreamEvent,
+  SiteAudit,
+  SiteSnapshot,
+} from "@/lib/schema";
 import { resolve } from "@/lib/agent/resolve";
 import { fetchSite } from "@/lib/agent/fetchSite";
 import { auditSite } from "@/lib/agent/auditSite";
@@ -12,7 +18,9 @@ import {
   fallbackDesignBrief,
   generateDesignBrief,
 } from "@/lib/agent/designBrief";
-import { generateSiteWithVariants } from "@/lib/agent/generateSite";
+import { deterministicBrandTier } from "@/lib/agent/enrichSite";
+import { buildVariants } from "@/lib/generate/variants/index";
+import { seededTokensForSlug } from "@/lib/generate/tokens";
 import { deploySite } from "@/lib/agent/deploySite";
 import { getDemo, findDemoByName, getDemoEntry, isDemoMode } from "@/lib/demo/seed";
 import { encodeSse, sleep } from "@/lib/stream";
@@ -32,6 +40,14 @@ export const dynamic = "force-dynamic";
 type AuditRequestBody = {
   input?: string;
   demoSlug?: string;
+};
+
+type AuditPipelineResult = {
+  audit: SiteAudit;
+  snapshotUrl: string | null;
+  critique: { confidence: number; adjustments: string[] } | null;
+  enrichment: EnrichmentContext;
+  designBrief: DesignBrief;
 };
 
 function thumShot(pageUrl: string): string {
@@ -147,11 +163,7 @@ async function emitLighthouse(
 async function replayDemoTrace(
   send: (event: StreamEvent) => void,
   demoSlug: string,
-): Promise<{
-  audit: SiteAudit;
-  snapshotUrl: string | null;
-  critique: { confidence: number; adjustments: string[] } | null;
-}> {
+): Promise<AuditPipelineResult> {
   const demo = getDemo(demoSlug);
   if (!demo) throw new Error(`Demo not found: ${demoSlug}`);
 
@@ -221,21 +233,32 @@ async function replayDemoTrace(
   });
   send({ type: "audit", data: demo.audit });
   const critique = await emitCritique(send, demo.audit, demo.snapshot, demoSlug);
+  const enrichment: EnrichmentContext = {
+    wikipediaExcerpt: null,
+    googleReviewCount: null,
+    googleRating: null,
+    yearsOperating: null,
+    pressSnippets: [],
+    brandTier: deterministicBrandTier(demo.snapshot),
+    brandTokens: seededTokensForSlug(demoSlug),
+  };
+  const designBrief = fallbackDesignBrief(
+    "warm-local",
+    demo.audit.brandTier ?? "generic",
+  );
   return {
     audit: demo.audit,
     snapshotUrl: demo.snapshot.url,
     critique,
+    enrichment,
+    designBrief,
   };
 }
 
 async function runLiveAudit(
   input: string,
   send: (event: StreamEvent) => void,
-): Promise<{
-  audit: SiteAudit;
-  snapshotUrl: string | null;
-  critique: { confidence: number; adjustments: string[] } | null;
-}> {
+): Promise<AuditPipelineResult> {
   if (isDemoMode()) {
     const demo = findDemoByName(input);
     if (demo) return replayDemoTrace(send, demo.slug);
@@ -371,88 +394,67 @@ async function runLiveAudit(
   send({ type: "design_brief", data: brief });
 
   const critique = await emitCritique(send, audit, snapshot);
-  return { audit, snapshotUrl: snapshot.url, critique };
+  return {
+    audit,
+    snapshotUrl: snapshot.url,
+    critique,
+    enrichment,
+    designBrief: brief,
+  };
 }
 
 async function runGenerateDeploy(
   audit: SiteAudit,
   send: (event: StreamEvent) => void,
-  snapshotUrl: string | null,
-  demoSlug?: string,
-  origin?: string,
-  critique?: { confidence: number; adjustments: string[] } | null,
+  opts: {
+    snapshotUrl: string | null;
+    enrichmentContext: EnrichmentContext;
+    designBrief: DesignBrief;
+    demoSlug?: string;
+    origin?: string;
+    critique?: { confidence: number; adjustments: string[] } | null;
+  },
 ) {
+  const { snapshotUrl, enrichmentContext, designBrief, demoSlug, origin } = opts;
+
   send({
     type: "step",
     step: "generate",
     status: "start",
-    message: "Filling Miami neon template from audit…",
-  });
-  send({
-    type: "reasoning",
-    delta: `Generating single-page site for ${audit.businessName} — hero, services, about, contact…\n`,
+    message: "Building 3 brand-faithful variants...",
   });
 
-  const councilActive =
-    process.env.LIVE_GENERATION === "true" &&
-    process.env.VARIANT_MODE === "true";
-
-  const agentTrace = {
-    onSpawn: (agent: string, role: string) =>
-      send({ type: "agent_spawn", agent, role }),
-    onActive: (agent: string, detail: string) =>
-      send({ type: "agent_active", agent, detail }),
-    onAgentDone: (agent: string, ms: number, output: string) =>
-      send({ type: "agent_done", agent, ms, output }),
-    onHandoff: (from: string, to: string) =>
-      send({ type: "agent_handoff", from, to }),
-    onVerdict: (
-      agent: string,
-      accepted: string,
-      rejected: string[],
-      reason: string,
-    ) =>
-      send({
-        type: "agent_verdict",
-        agent,
-        accepted,
-        rejected,
-        reason,
-      }),
-  };
-
-  if (councilActive && critique) {
-    agentTrace.onVerdict(
-      "critic",
-      `confidence ${critique.confidence}%`,
-      [],
-      critique.adjustments.join("; ") || "scores well-grounded",
-    );
-  }
-
-  const generated = await generateSiteWithVariants(
+  const variants = await buildVariants(
     audit,
-    (delta) => send({ type: "reasoning", delta }),
-    (provider, ms) => {
+    enrichmentContext.brandTokens ?? defaultBrandTokens(snapshotUrl),
+    designBrief,
+    (index, variant) => {
       send({
-        type: "reasoning",
-        delta: `Copy ready via ${provider} (${ms}ms)\n`,
+        type: "variant_ready",
+        data: {
+          variantIndex: index,
+          label: variant.variantLabel,
+          archetype: variant.archetype,
+          library: variant.library,
+          previewHtml: variant.previewHtml,
+          rationale: variant.differentiationRationale,
+        },
       });
     },
-    (msg) => send({ type: "variant_progress", message: msg }),
-    (variantIndex, score, totalMs) =>
-      send({ type: "variant_winner", variantIndex, score, totalMs }),
-    (provider, ms, won) =>
-      send({ type: "provider_result", provider, ms, won }),
-    agentTrace,
+    enrichmentContext,
   );
 
   send({
     type: "step",
     step: "generate",
     status: "done",
-    message: `Template filled — ${(generated.previewHtml.length / 1024).toFixed(1)} KB`,
+    message: `${variants.length} variants ready (${variants.map((variant) => variant.variantLabel).join(", ")})`,
   });
+
+  const generated = variants[0];
+  if (!generated) {
+    throw new Error("No variants generated");
+  }
 
   send({
     type: "step",
@@ -561,18 +563,18 @@ export async function POST(req: Request) {
 
       try {
         const origin = new URL(req.url).origin;
-        const { audit, snapshotUrl, critique } = demoSlug
+        const pipeline = demoSlug
           ? await replayDemoTrace(send, demoSlug)
           : await runLiveAudit(input, send);
 
-        await runGenerateDeploy(
-          audit,
-          send,
-          snapshotUrl,
+        await runGenerateDeploy(pipeline.audit, send, {
+          snapshotUrl: pipeline.snapshotUrl,
+          enrichmentContext: pipeline.enrichment,
+          designBrief: pipeline.designBrief,
           demoSlug,
           origin,
-          critique,
-        );
+          critique: pipeline.critique,
+        });
         send({ type: "done" });
       } catch (err) {
         send({

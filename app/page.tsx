@@ -75,6 +75,16 @@ export default function Page() {
   const [brandTokens, setBrandTokens] = useState<BrandTokens | null>(null);
   const [landscape, setLandscape] = useState<LandscapeAnalysis | null>(null);
   const [designBrief, setDesignBrief] = useState<DesignBrief | null>(null);
+  const [variants, setVariants] = useState<
+    {
+      index: number;
+      label: string;
+      archetype: string;
+      library: string;
+      previewHtml: string;
+      rationale: string;
+    }[]
+  >([]);
   const [pipelineTotalMs, setPipelineTotalMs] = useState<number | null>(null);
   const pipelineStartRef = useRef<number | null>(null);
   const trace = useRef<TraceEntry[]>([]);
@@ -101,6 +111,7 @@ export default function Page() {
     setBrandTokens(null);
     setLandscape(null);
     setDesignBrief(null);
+    setVariants([]);
     setPipelineTotalMs(null);
     pipelineStartRef.current = null;
     trace.current = [];
@@ -165,6 +176,21 @@ export default function Page() {
     if (event.type === "brand_tokens") setBrandTokens(event.data);
     if (event.type === "landscape") setLandscape(event.data);
     if (event.type === "design_brief") setDesignBrief(event.data);
+    if (event.type === "variant_ready") {
+      setVariants((prev) =>
+        [
+          ...prev,
+          {
+            index: event.data.variantIndex,
+            label: event.data.label,
+            archetype: event.data.archetype,
+            library: event.data.library,
+            previewHtml: event.data.previewHtml,
+            rationale: event.data.rationale,
+          },
+        ].sort((a, b) => a.index - b.index),
+      );
+    }
     if (event.type === "snapshot") setOriginalUrl(event.data.url);
     if (event.type === "deploy") setDeployUrl(event.data.url);
     if (event.type === "shots") {

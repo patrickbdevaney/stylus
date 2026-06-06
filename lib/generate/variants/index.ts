@@ -1,6 +1,7 @@
 import type {
   BrandTokens,
   DesignBrief,
+  EnrichmentContext,
   GeneratedVariant,
   SiteAudit,
 } from "@/lib/schema";
@@ -10,32 +11,44 @@ import { buildLocalWarmVariant } from "./localWarmVariant";
 import { buildFallbackVariant } from "./variantUtils";
 
 const BUILDERS = [
-  buildEditorialVariant,
-  buildAnimatedLandingVariant,
-  buildLocalWarmVariant,
+  { fn: buildEditorialVariant, label: "Editorial" },
+  { fn: buildAnimatedLandingVariant, label: "Animated" },
+  { fn: buildLocalWarmVariant, label: "Local" },
 ] as const;
-
-const LABELS = ["Editorial", "Animated Landing", "Local Warm"] as const;
 
 export { buildEditorialVariant } from "./editorialVariant";
 export { buildAnimatedLandingVariant } from "./animatedLandingVariant";
 export { buildLocalWarmVariant } from "./localWarmVariant";
+
+async function runBuilder(
+  builder: (typeof BUILDERS)[number]["fn"],
+  audit: SiteAudit,
+  tokens: BrandTokens,
+  brief: DesignBrief,
+  enrichment?: EnrichmentContext,
+): Promise<GeneratedVariant> {
+  if (builder === buildLocalWarmVariant) {
+    return buildLocalWarmVariant(audit, tokens, brief, enrichment);
+  }
+  return builder(audit, tokens, brief);
+}
 
 export async function buildVariants(
   audit: SiteAudit,
   tokens: BrandTokens,
   brief: DesignBrief,
   onVariantReady?: (index: number, variant: GeneratedVariant) => void,
+  enrichment?: EnrichmentContext,
 ): Promise<GeneratedVariant[]> {
   const results = await Promise.allSettled(
-    BUILDERS.map((builder) => builder(audit, tokens, brief)),
+    BUILDERS.map(({ fn }) => runBuilder(fn, audit, tokens, brief, enrichment)),
   );
 
   const variants: GeneratedVariant[] = [];
 
   for (let index = 0; index < BUILDERS.length; index++) {
     const result = results[index];
-    const label = LABELS[index];
+    const label = BUILDERS[index].label;
 
     if (result.status === "fulfilled") {
       onVariantReady?.(index, result.value);
