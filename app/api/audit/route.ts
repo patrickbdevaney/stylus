@@ -1,6 +1,7 @@
 import type {
   DesignBrief,
   EnrichmentContext,
+  GeneratedVariant,
   StreamEvent,
   SiteAudit,
   SiteSnapshot,
@@ -48,7 +49,39 @@ type AuditPipelineResult = {
   critique: { confidence: number; adjustments: string[] } | null;
   enrichment: EnrichmentContext;
   designBrief: DesignBrief;
+  variants?: GeneratedVariant[];
 };
+
+function demoArchetype(
+  tier: EnrichmentContext["brandTier"],
+): DesignBrief["archetype"] {
+  if (tier === "iconic") return "editorial";
+  if (tier === "established") return "tech";
+  return "warm-local";
+}
+
+function emitVariantEvents(
+  send: (event: StreamEvent) => void,
+  index: number,
+  variant: GeneratedVariant,
+): void {
+  send({
+    type: "variant_ready",
+    data: {
+      variantIndex: index,
+      label: variant.variantLabel,
+      archetype: variant.archetype,
+      library: variant.library,
+      previewHtml: variant.previewHtml,
+      rationale: variant.differentiationRationale,
+    },
+  });
+  send({
+    type: "variant_files",
+    variantIndex: index,
+    files: variant.files,
+  });
+}
 
 function thumShot(pageUrl: string): string {
   return `https://image.thum.io/get/width/600/crop/338/${pageUrl}`;
@@ -243,15 +276,41 @@ async function replayDemoTrace(
     brandTokens: seededTokensForSlug(demoSlug),
   };
   const designBrief = fallbackDesignBrief(
-    "warm-local",
-    demo.audit.brandTier ?? "generic",
+    demoArchetype(enrichment.brandTier),
+    enrichment.brandTier,
   );
+
+  send({ type: "design_brief", data: designBrief });
+
+  send({
+    type: "step",
+    step: "generate",
+    status: "start",
+    message: "Building 3 brand-faithful variants...",
+  });
+
+  const variants = await buildVariants(
+    demo.audit,
+    enrichment.brandTokens ?? seededTokensForSlug(demoSlug),
+    designBrief,
+    (index, variant) => emitVariantEvents(send, index, variant),
+    enrichment,
+  );
+
+  send({
+    type: "step",
+    step: "generate",
+    status: "done",
+    message: `${variants.length} variants ready (${variants.map((variant) => variant.variantLabel).join(", ")})`,
+  });
+
   return {
     audit: demo.audit,
     snapshotUrl: demo.snapshot.url,
     critique,
     enrichment,
     designBrief,
+    variants,
   };
 }
 
@@ -413,48 +472,43 @@ async function runGenerateDeploy(
     demoSlug?: string;
     origin?: string;
     critique?: { confidence: number; adjustments: string[] } | null;
+    prebuiltVariants?: GeneratedVariant[];
   },
 ) {
-  const { snapshotUrl, enrichmentContext, designBrief, demoSlug, origin } = opts;
-
-  send({
-    type: "step",
-    step: "generate",
-    status: "start",
-    message: "Building 3 brand-faithful variants...",
-  });
-
-  const variants = await buildVariants(
-    audit,
-    enrichmentContext.brandTokens ?? defaultBrandTokens(snapshotUrl),
-    designBrief,
-    (index, variant) => {
-      send({
-        type: "variant_ready",
-        data: {
-          variantIndex: index,
-          label: variant.variantLabel,
-          archetype: variant.archetype,
-          library: variant.library,
-          previewHtml: variant.previewHtml,
-          rationale: variant.differentiationRationale,
-        },
-      });
-      send({
-        type: "variant_files",
-        variantIndex: index,
-        files: variant.files,
-      });
-    },
+  const {
+    snapshotUrl,
     enrichmentContext,
-  );
+    designBrief,
+    demoSlug,
+    origin,
+    prebuiltVariants,
+  } = opts;
 
-  send({
-    type: "step",
-    step: "generate",
-    status: "done",
-    message: `${variants.length} variants ready (${variants.map((variant) => variant.variantLabel).join(", ")})`,
-  });
+  let variants = prebuiltVariants;
+
+  if (!variants || variants.length === 0) {
+    send({
+      type: "step",
+      step: "generate",
+      status: "start",
+      message: "Building 3 brand-faithful variants...",
+    });
+
+    variants = await buildVariants(
+      audit,
+      enrichmentContext.brandTokens ?? defaultBrandTokens(snapshotUrl),
+      designBrief,
+      (index, variant) => emitVariantEvents(send, index, variant),
+      enrichmentContext,
+    );
+
+    send({
+      type: "step",
+      step: "generate",
+      status: "done",
+      message: `${variants.length} variants ready (${variants.map((variant) => variant.variantLabel).join(", ")})`,
+    });
+  }
 
   const generated = variants[0];
   if (!generated) {
@@ -579,6 +633,7 @@ export async function POST(req: Request) {
           demoSlug,
           origin,
           critique: pipeline.critique,
+          prebuiltVariants: pipeline.variants,
         });
         send({ type: "done" });
       } catch (err) {

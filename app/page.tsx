@@ -25,6 +25,7 @@ import { SeoGapPanel } from "@/components/SeoGapPanel";
 import { LighthousePanel } from "@/components/LighthousePanel";
 import { CostReceipt } from "@/components/CostReceipt";
 import { StatTicker } from "@/components/StatTicker";
+import { VariantGallery } from "@/components/VariantGallery";
 import type { SeoGapResponse } from "@/lib/seoGap";
 import type { LighthouseDelta } from "@/lib/lighthouse";
 import type { TraceEntry } from "@/lib/trace";
@@ -440,6 +441,17 @@ export default function Page() {
           </div>
         )}
 
+        {variants.length > 0 && (
+          <VariantGallery
+            variants={variants}
+            variantFiles={variantFiles}
+            businessName={audit?.businessName ?? ""}
+            originalUrl={originalUrl}
+            deployUrl={deployUrl}
+            designBrief={designBrief}
+          />
+        )}
+
         {lighthouse && audit && (
           <LighthousePanel
             before={lighthouse.before}
@@ -475,19 +487,7 @@ export default function Page() {
           />
         )}
 
-        {deployUrl && (
-          <div className="mt-8 text-center animate-reveal-up">
-            <a
-              href={deployUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple px-12 py-4 font-display text-2xl uppercase tracking-wide text-night transition hover:brightness-110 neon-glow-cyan"
-            >
-              Open live site ↗
-            </a>
-            <DeployShareCard url={deployUrl} />
-          </div>
-        )}
+        {deployUrl && <DeployShareCard url={deployUrl} />}
 
         {error && (
           <p className="mt-8 rounded-xl border-2 border-red-500/50 bg-red-500/15 px-6 py-4 text-center text-lg font-semibold text-red-200">

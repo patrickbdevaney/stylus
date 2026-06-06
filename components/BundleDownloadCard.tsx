@@ -13,13 +13,20 @@ type Props = {
   };
   files: Record<string, string>;
   businessName: string;
+  pending?: boolean;
 };
 
-export function BundleDownloadCard({ variant, files, businessName }: Props) {
+export function BundleDownloadCard({
+  variant,
+  files,
+  businessName,
+  pending = false,
+}: Props) {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fileCount = Object.keys(files).length;
+  const isDisabled = downloading || pending || fileCount === 0;
   const rationalePreview =
     variant.rationale.length > 160
       ? `${variant.rationale.slice(0, 157)}…`
@@ -78,7 +85,7 @@ export function BundleDownloadCard({ variant, files, businessName }: Props) {
       </p>
 
       <p className="mb-4 text-xs uppercase tracking-widest text-white/50">
-        {fileCount} files
+        {pending ? "Bundle generating…" : `${fileCount} files`}
       </p>
 
       <pre className="mb-6 overflow-x-auto rounded-lg border border-white/10 bg-night/60 px-4 py-3 font-mono text-xs text-neon-cyan/90">
@@ -88,10 +95,14 @@ export function BundleDownloadCard({ variant, files, businessName }: Props) {
       <button
         type="button"
         onClick={() => void handleDownload()}
-        disabled={downloading || fileCount === 0}
+        disabled={isDisabled}
         className="mt-auto rounded-xl border border-neon-cyan/50 bg-neon-cyan/10 px-6 py-3 font-display text-sm uppercase tracking-wider text-neon-cyan transition hover:bg-neon-cyan/20 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {downloading ? "Packaging…" : "Download .zip ⬇"}
+        {downloading
+          ? "Packaging…"
+          : pending || fileCount === 0
+            ? "Generating bundle…"
+            : "Download .zip ⬇"}
       </button>
 
       {error ? (
