@@ -3,11 +3,17 @@ import { resolve } from "@/lib/agent/resolve";
 import { fetchSite } from "@/lib/agent/fetchSite";
 import { auditSite } from "@/lib/agent/auditSite";
 import { enrichSite } from "@/lib/agent/enrichSite";
+import {
+  analyzeLandscape,
+  defaultLandscape,
+} from "@/lib/agent/competitorLandscape";
+import { defaultBrandTokens } from "@/lib/agent/extractBrand";
 import { generateSiteWithVariants } from "@/lib/agent/generateSite";
 import { deploySite } from "@/lib/agent/deploySite";
 import { getDemo, findDemoByName, getDemoEntry, isDemoMode } from "@/lib/demo/seed";
 import { encodeSse, sleep } from "@/lib/stream";
 import { previewUrl, storePreviewHtml } from "@/lib/previewStore";
+import { buildSeedPayload } from "@/lib/seoGap";
 import {
   getLighthouseDelta,
   seededLighthouseDelta,
@@ -285,6 +291,36 @@ async function runLiveAudit(
   if (enrichment.brandTokens) {
     send({ type: "brand_tokens", data: enrichment.brandTokens });
   }
+
+  send({
+    type: "step",
+    step: "enrich",
+    status: "start",
+    message: "Analyzing competitor design landscape...",
+  });
+
+  const gapSeed = buildSeedPayload(
+    snapshot.businessName,
+    snapshot.description ?? "Local Business",
+  );
+  const competitorUrls = gapSeed.competitors
+    .map((c) => c.sourceUrl)
+    .filter((u): u is string => u.startsWith("http"));
+
+  const landscape = await analyzeLandscape(
+    enrichment.brandTokens ?? defaultBrandTokens(snapshot.url),
+    competitorUrls,
+    enrichment.brandTier,
+    (msg) => send({ type: "reasoning", delta: msg + "\n" }),
+  ).catch(() => defaultLandscape(competitorUrls));
+
+  send({ type: "landscape", data: landscape });
+  send({
+    type: "step",
+    step: "enrich",
+    status: "done",
+    message: `Landscape: ${landscape.recommendedArchetype} — ${landscape.differentiationVector.slice(0, 60)}…`,
+  });
 
   send({
     type: "step",

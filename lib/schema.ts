@@ -136,6 +136,45 @@ export type BrandTokens = z.infer<typeof BrandTokensSchema>;
 export type BrandColor = z.infer<typeof BrandColorSchema>;
 export type BrandFont = z.infer<typeof BrandFontSchema>;
 
+export const ColorTendencySchema = z.object({
+  dominantHue: z.enum([
+    "red",
+    "orange",
+    "yellow",
+    "green",
+    "blue",
+    "purple",
+    "pink",
+    "neutral",
+    "dark",
+    "multi",
+  ]),
+  saturation: z.enum(["vibrant", "muted", "neutral"]),
+  lightness: z.enum(["light", "mid", "dark"]),
+});
+
+export const LandscapeAnalysisSchema = z.object({
+  competitorCount: z.number().int(),
+  sharedColorTendency: ColorTendencySchema,
+  sharedFontStyle: z.enum(["serif", "sans-serif", "mixed", "mono"]),
+  targetColorTendency: ColorTendencySchema,
+  targetFontStyle: z.enum(["serif", "sans-serif", "mixed", "mono"]),
+  differentiationVector: z.string(),
+  recommendedArchetype: z.enum([
+    "editorial",
+    "tech",
+    "warm-local",
+    "luxury",
+    "playful",
+    "generic",
+  ]),
+  competitorUrls: z.array(z.string()),
+  degraded: z.boolean(),
+});
+
+export type ColorTendency = z.infer<typeof ColorTendencySchema>;
+export type LandscapeAnalysis = z.infer<typeof LandscapeAnalysisSchema>;
+
 export type EnrichmentContext = {
   wikipediaExcerpt: string | null;
   googleReviewCount: number | null;
@@ -187,6 +226,7 @@ export type StreamEvent =
       reason: string;
     }
   | { type: "brand_tokens"; data: BrandTokens }
+  | { type: "landscape"; data: LandscapeAnalysis }
   | { type: "done" }
   | { type: "error"; message: string };
 

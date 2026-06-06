@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { BrandTokens, SiteAudit, StreamEvent } from "@/lib/schema";
+import type { BrandTokens, LandscapeAnalysis, SiteAudit, StreamEvent } from "@/lib/schema";
 import { getDemoBusinesses } from "@/lib/demo/seed";
 import {
   AuditStream,
@@ -67,6 +67,7 @@ export default function Page() {
     adjustments: string[];
   } | null>(null);
   const [brandTokens, setBrandTokens] = useState<BrandTokens | null>(null);
+  const [landscape, setLandscape] = useState<LandscapeAnalysis | null>(null);
   const [pipelineTotalMs, setPipelineTotalMs] = useState<number | null>(null);
   const pipelineStartRef = useRef<number | null>(null);
   const trace = useRef<TraceEntry[]>([]);
@@ -91,6 +92,7 @@ export default function Page() {
     setProviderResults([]);
     setCritique(null);
     setBrandTokens(null);
+    setLandscape(null);
     setPipelineTotalMs(null);
     pipelineStartRef.current = null;
     trace.current = [];
@@ -153,6 +155,7 @@ export default function Page() {
       });
     }
     if (event.type === "brand_tokens") setBrandTokens(event.data);
+    if (event.type === "landscape") setLandscape(event.data);
     if (event.type === "snapshot") setOriginalUrl(event.data.url);
     if (event.type === "deploy") setDeployUrl(event.data.url);
     if (event.type === "shots") {
