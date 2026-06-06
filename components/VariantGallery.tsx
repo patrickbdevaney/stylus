@@ -24,7 +24,7 @@ type Props = {
   businessName: string;
   originalUrl: string | null;
   deployUrl?: string | null;
-  designBrief?: DesignBrief | null;
+  designBriefs?: DesignBrief[];
 };
 
 function thumShot(pageUrl: string): string {
@@ -61,7 +61,7 @@ export function VariantGallery({
   businessName,
   originalUrl,
   deployUrl,
-  designBrief,
+  designBriefs = [],
 }: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [diffMode, setDiffMode] = useState(false);
@@ -93,12 +93,13 @@ export function VariantGallery({
       ? previewBlobUrl
       : null;
 
-  const briefLine = designBrief
-    ? (() => {
-        const raw = `${designBrief.archetype} — ${designBrief.differentiationVector}`;
-        return raw.length > 80 ? `${raw.slice(0, 77)}…` : raw;
-      })()
-    : null;
+  const briefLine = (() => {
+    const selectedBrief =
+      designBriefs[selected.index] ?? designBriefs[0] ?? null;
+    if (!selectedBrief) return null;
+    const raw = `${selectedBrief.archetype} — ${selectedBrief.differentiationVector}`;
+    return raw.length > 80 ? `${raw.slice(0, 77)}…` : raw;
+  })();
 
   return (
     <section className="glass-card neon-glow-cyan mt-8 animate-reveal-up p-6 md:p-8">
@@ -129,16 +130,6 @@ export function VariantGallery({
           >
             Compare vs original ↔
           </button>
-          {deployUrl ? (
-            <a
-              href={deployUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full border border-white/15 px-4 py-2 text-xs uppercase tracking-wider text-white/70 transition hover:border-neon-cyan hover:text-neon-cyan"
-            >
-              Open live site ↗
-            </a>
-          ) : null}
         </div>
       </div>
 

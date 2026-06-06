@@ -1,7 +1,14 @@
 import { randomUUID } from "crypto";
 import { get as blobGet, put } from "@vercel/blob";
 
+export function isBlobAvailable(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
 export async function storePreviewHtml(html: string): Promise<string> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("BLOB_READ_WRITE_TOKEN is not set — cannot store preview");
+  }
   const id = randomUUID().slice(0, 12);
   await put(`previews/${id}.html`, html, {
     access: "public",

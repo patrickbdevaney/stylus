@@ -25,7 +25,7 @@ import { seededTokensForSlug } from "@/lib/generate/tokens";
 import { deploySite } from "@/lib/agent/deploySite";
 import { getDemo, findDemoByName, getDemoEntry, isDemoMode } from "@/lib/demo/seed";
 import { encodeSse, sleep } from "@/lib/stream";
-import { previewUrl, storePreviewHtml } from "@/lib/previewStore";
+import { isBlobAvailable, previewUrl, storePreviewHtml } from "@/lib/previewStore";
 import { buildSeedPayload } from "@/lib/seoGap";
 import {
   getLighthouseDelta,
@@ -568,7 +568,7 @@ async function runGenerateDeploy(
       return;
     }
 
-    if (origin) {
+    if (origin && isBlobAvailable()) {
       const id = await storePreviewHtml(generated.previewHtml);
       const url = previewUrl(id, origin);
       send({
@@ -595,7 +595,21 @@ async function runGenerateDeploy(
       return;
     }
 
-    throw err;
+    send({
+      type: "reasoning",
+      delta: "No BLOB_READ_WRITE_TOKEN — variants served inline via srcdoc only.\n",
+    });
+    send({
+      type: "step",
+      step: "deploy",
+      status: "done",
+      message: "Inline preview only",
+    });
+    send({
+      type: "deploy",
+      data: { url: "/previews/fallback.html", provider: "vercel", ms: 0 },
+    });
+    return;
   }
 }
 

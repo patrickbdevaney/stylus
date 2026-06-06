@@ -75,7 +75,7 @@ export default function Page() {
   } | null>(null);
   const [brandTokens, setBrandTokens] = useState<BrandTokens | null>(null);
   const [landscape, setLandscape] = useState<LandscapeAnalysis | null>(null);
-  const [designBrief, setDesignBrief] = useState<DesignBrief | null>(null);
+  const [designBriefs, setDesignBriefs] = useState<DesignBrief[]>([]);
   const [variants, setVariants] = useState<
     {
       index: number;
@@ -118,7 +118,7 @@ export default function Page() {
     setCritique(null);
     setBrandTokens(null);
     setLandscape(null);
-    setDesignBrief(null);
+    setDesignBriefs([]);
     setVariants([]);
     setVariantFiles({});
     setPipelineTotalMs(null);
@@ -182,9 +182,29 @@ export default function Page() {
         adjustments: event.adjustments,
       });
     }
-    if (event.type === "brand_tokens") setBrandTokens(event.data);
-    if (event.type === "landscape") setLandscape(event.data);
-    if (event.type === "design_briefs") setDesignBrief(event.data[0] ?? null);
+    if (event.type === "brand_tokens") {
+      setBrandTokens(event.data);
+      setReasoning(
+        (r) =>
+          r +
+          (event.data.degraded
+            ? "Brand tokens: using defaults (live extraction unavailable).\n"
+            : `Brand tokens extracted — ${event.data.colors.length} colors, ${event.data.fonts.length} fonts.\n`),
+      );
+    }
+    if (event.type === "landscape") {
+      setLandscape(event.data);
+      setReasoning(
+        (r) =>
+          r +
+          `Competitor landscape: ${event.data.competitorCount} rivals analyzed. Recommended archetype: ${event.data.recommendedArchetype}.\n`,
+      );
+    }
+    if (event.type === "design_briefs") {
+      setDesignBriefs(event.data);
+      const labels = event.data.map((brief) => brief.variantLabel).join(", ");
+      setReasoning((r) => r + `Design briefs generated: ${labels}.\n`);
+    }
     if (event.type === "variant_ready") {
       setVariants((prev) =>
         [
@@ -202,6 +222,11 @@ export default function Page() {
             motionLevel: event.data.motionLevel,
           },
         ].sort((a, b) => a.index - b.index),
+      );
+      setReasoning(
+        (r) =>
+          r +
+          `Variant ${event.data.variantIndex + 1} ready — ${event.data.label} (${event.data.library}, ${event.data.heroType} hero).\n`,
       );
     }
     if (event.type === "variant_files") {
@@ -321,6 +346,11 @@ export default function Page() {
     running ||
     agents.some((a) => a.state !== "idle") ||
     agentVerdict !== null;
+  const realDeployUrl =
+    deployUrl &&
+    (deployUrl.startsWith("http://") || deployUrl.startsWith("https://"))
+      ? deployUrl
+      : null;
 
   return (
     <main className="relative min-h-screen overflow-x-hidden">
@@ -455,9 +485,23 @@ export default function Page() {
             variantFiles={variantFiles}
             businessName={audit?.businessName ?? ""}
             originalUrl={originalUrl}
-            deployUrl={deployUrl}
-            designBrief={designBrief}
+            deployUrl={realDeployUrl}
+            designBriefs={designBriefs}
           />
+        )}
+
+        {realDeployUrl && (
+          <div className="mt-4 text-center">
+            <a
+              href={realDeployUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-neon-cyan/60 underline hover:text-neon-cyan"
+            >
+              Open primary deploy ↗
+            </a>
+            <DeployShareCard url={realDeployUrl} />
+          </div>
         )}
 
         {lighthouse && audit && (
@@ -486,16 +530,14 @@ export default function Page() {
           />
         )}
 
-        {deployUrl && audit && (
+        {realDeployUrl && audit && (
           <BeforeAfter
             originalUrl={originalUrl}
-            deployUrl={deployUrl}
+            deployUrl={realDeployUrl}
             businessName={audit.businessName}
             overallScore={audit.overallScore}
           />
         )}
-
-        {deployUrl && <DeployShareCard url={deployUrl} />}
 
         {error && (
           <p className="mt-8 rounded-xl border-2 border-red-500/50 bg-red-500/15 px-6 py-4 text-center text-lg font-semibold text-red-200">
